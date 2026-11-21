@@ -1,3 +1,4 @@
+import { BusinessSettings } from './business';
 import { DiscountType, InstallationMode, IvaMode, PricingSnapshot, QuoteLine, QuoteOptions } from '../pricing/pricing-engine';
 
 export type QuotationStatus = 'borrador' | 'emitida' | 'aceptada' | 'rechazada';
@@ -45,6 +46,7 @@ export interface Quotation extends QuotationSummary {
   options: Partial<QuoteOptions>;
   customer_snapshot: CustomerSnapshot;
   pricing_snapshot: PricingSnapshot;
+  business_snapshot: BusinessSettings | null;
   quotation_items: QuotationItem[];
 }
 

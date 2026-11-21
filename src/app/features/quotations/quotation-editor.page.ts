@@ -329,6 +329,13 @@ export class QuotationEditorPage implements OnInit {
     }
   }
 
+  /** Guarda el borrador (si se puede) y abre la vista de imagen, donde se emite. */
+  async toImage(): Promise<void> {
+    await this.save();
+    const id = this.quoteId();
+    if (id && !this.error()) await this.router.navigate(['/cotizaciones', id, 'imagen']);
+  }
+
   /** Borrador: reemplaza su copia de precios por la del tarifario vigente. */
   async refreshPrices(): Promise<void> {
     this.busy.set(true);

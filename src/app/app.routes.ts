@@ -82,6 +82,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/quotations/quotation-editor.page').then((m) => m.QuotationEditorPage),
       },
       {
+        path: 'cotizaciones/:qid/imagen',
+        title: 'Imagen de cotización · Medidas Roller',
+        loadComponent: () => import('./features/quotations/quote-image.page').then((m) => m.QuoteImagePage),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-layout').then((m) => m.AdminLayout),
@@ -106,6 +111,11 @@ export const routes: Routes = [
             path: 'usuarios',
             title: 'Usuarios · Medidas Roller',
             loadComponent: () => import('./features/admin/users.page').then((m) => m.UsersPage),
+          },
+          {
+            path: 'configuracion',
+            title: 'Configuración · Medidas Roller',
+            loadComponent: () => import('./features/admin/business-settings.page').then((m) => m.BusinessSettingsPage),
           },
         ],
       },

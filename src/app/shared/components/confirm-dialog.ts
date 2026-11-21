@@ -12,7 +12,7 @@ import { Component, ElementRef, input, output, viewChild } from '@angular/core';
       <p>{{ message() }}</p>
       <div class="actions">
         <button type="button" class="btn" (click)="dlg.close('cancel')">Cancelar</button>
-        <button type="button" class="btn btn-danger" (click)="dlg.close('ok')">{{ confirmLabel() }}</button>
+        <button type="button" class="btn" [class.btn-danger]="tone() === 'danger'" [class.btn-primary]="tone() === 'primary'" (click)="dlg.close('ok')">{{ confirmLabel() }}</button>
       </div>
     </dialog>
   `,
@@ -27,6 +27,7 @@ export class ConfirmDialog {
   readonly title = input.required<string>();
   readonly message = input('');
   readonly confirmLabel = input('Eliminar');
+  readonly tone = input<'danger' | 'primary'>('danger');
   readonly confirmed = output<void>();
 
   private readonly dlg = viewChild.required<ElementRef<HTMLDialogElement>>('dlg');

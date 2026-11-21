@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-/** Panel de administración: tarifarios, catálogo y usuarios. Solo para el perfil administrador. */
+/** Panel de administración: tarifarios, catálogo, usuarios y datos de la empresa. Solo para el perfil administrador. */
 @Component({
   selector: 'app-admin-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -12,6 +12,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <a routerLink="tarifarios" routerLinkActive="on">Tarifarios</a>
         <a routerLink="catalogo" routerLinkActive="on">Catálogo</a>
         <a routerLink="usuarios" routerLinkActive="on">Usuarios</a>
+        <a routerLink="configuracion" routerLinkActive="on">Configuración</a>
       </nav>
     </div>
     <router-outlet />

@@ -36,7 +36,7 @@ const SUPABASE_SHIM = `
   $$;
   alter table storage.objects enable row level security;
   grant usage on schema storage to anon, authenticated;
-  grant select, insert, delete on storage.objects to authenticated;
+  grant select, insert, update, delete on storage.objects to authenticated;
   grant execute on function storage.foldername(text) to authenticated;
 `;
 

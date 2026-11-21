@@ -93,6 +93,12 @@ export class QuotationRepository {
     if (error) throw error;
   }
 
+  /** Emite: congela la cotización y guarda la copia de los datos de la empresa. */
+  async issue(id: string): Promise<void> {
+    const { error } = await this.db.rpc('issue_quotation', { p_id: id });
+    if (error) throw error;
+  }
+
   async remove(id: string): Promise<void> {
     const { data, error } = await this.db.from('quotations').delete().eq('id', id).select('id');
     if (error) throw error;
