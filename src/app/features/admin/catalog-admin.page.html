@@ -32,6 +32,20 @@
           <label><input type="checkbox" [checked]="p.fabricated" (change)="setFlag(p, 'fabricated', $any($event.target).checked)" /> Lo fabricamos</label>
           <label><input type="checkbox" [checked]="p.active" (change)="setFlag(p, 'active', $any($event.target).checked)" /> Activo</label>
         </div>
+        @if (p.kind === 'tela' && p.fabricated) {
+          <details class="conf">
+            <summary>Confección (cm sobre la medida de terreno){{ hasConf(p) ? '' : ' · sin reglas' }}</summary>
+            <div class="conf-grid">
+              @for (f of confFields; track f.key) {
+                <label>{{ f.label }}
+                  <input inputmode="decimal" [value]="confValue(p, f.key)" [attr.aria-label]="f.label + ' de ' + p.code"
+                         placeholder="—" (change)="setConf(p, f.key, $any($event.target).value)" />
+                </label>
+              }
+            </div>
+            <span class="hint">Negativo resta, positivo suma. Vacío = esa pieza no aplica. Ej.: tela ancho −4 → 170 cm queda en 166.</span>
+          </details>
+        }
         <div class="opts">
           <span class="muted">Opciones:</span>
           @for (o of p.product_options; track o.id) {

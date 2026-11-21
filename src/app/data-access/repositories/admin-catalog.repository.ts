@@ -15,7 +15,7 @@ export interface NewProduct {
   frente_id?: string;
 }
 
-type ProductPatch = Partial<Pick<Product, 'name' | 'cenefa_mode' | 'fabricated' | 'has_mechanism' | 'active' | 'sort_order'>>;
+type ProductPatch = Partial<Pick<Product, 'name' | 'cenefa_mode' | 'fabricated' | 'has_mechanism' | 'active' | 'sort_order' | 'conf_fabric_w' | 'conf_fabric_h' | 'conf_tube' | 'conf_bottom' | 'conf_cenefa' | 'conf_roller'>>;
 
 /**
  * Escrituras del administrador sobre catálogo y usuarios. RLS rechaza cualquier escritura de un medidor.
@@ -31,7 +31,7 @@ export class AdminCatalogRepository {
     const [p, c, a] = await Promise.all([
       this.db
         .from('products')
-        .select('id, code, name, kind, cenefa_mode, fabricated, has_mechanism, active, sort_order, product_components!product_components_system_product_id_fkey(role, component_product_id), product_options(id, product_id, name, active, sort_order)')
+        .select('id, code, name, kind, cenefa_mode, fabricated, has_mechanism, active, sort_order, conf_fabric_w, conf_fabric_h, conf_tube, conf_bottom, conf_cenefa, conf_roller, product_components!product_components_system_product_id_fkey(role, component_product_id), product_options(id, product_id, name, active, sort_order)')
         .order('sort_order'),
       this.db.from('colors').select('id, name, active').order('sort_order'),
       this.db.from('accessories').select('id, name, scope, active').order('sort_order'),

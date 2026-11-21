@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminCatalogRepository, NewProduct } from '../../data-access/repositories/admin-catalog.repository';
 import { Accessory, CenefaMode, Color, Product } from '../../domain/models/catalog';
 import { toUserMessage } from '../../shared/errors';
+import { parseDecimal } from '../../shared/format';
 
 type Tab = 'productos' | 'colores' | 'accesorios';
 
@@ -14,6 +15,8 @@ const emptyProduct = (): NewProduct => ({
  * Catálogo administrable (HU-22, HU-44): productos y sus opciones, colores y accesorios.
  * Nada se borra si ya se usó: se desactiva, para no romper rectificaciones antiguas.
  */
+type ConfKey = 'conf_fabric_w' | 'conf_fabric_h' | 'conf_tube' | 'conf_bottom' | 'conf_cenefa' | 'conf_roller';
+
 @Component({
   selector: 'app-catalog-admin-page',
   imports: [FormsModule],
@@ -31,6 +34,10 @@ const emptyProduct = (): NewProduct => ({
     .flags label { display: flex; gap: 8px; align-items: center; min-height: 36px; }
     .flags input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--navy); }
     .flags select { min-height: 36px; border: 1px solid var(--line-strong); border-radius: 8px; font: 14px Inter, sans-serif; padding: 0 6px; }
+    .conf summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--navy); min-height: 36px; display: flex; align-items: center; }
+    .conf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 6px 0; }
+    .conf-grid label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+    .conf-grid input { min-height: 40px; }
     .opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .opt { display: inline-flex; align-items: center; gap: 4px; background: var(--soft); border-radius: 99px; padding: 2px 4px 2px 12px; font-size: 13px; font-weight: 600; }
     .opt button { border: 0; background: none; width: 28px; height: 28px; border-radius: 99px; cursor: pointer; color: var(--danger); font-size: 16px; }
@@ -102,6 +109,32 @@ export class CatalogAdminPage implements OnInit {
     void this.run(() => this.repo.updateProduct(p.id, { cenefa_mode: mode }));
   }
   setFlag(p: Product, key: 'has_mechanism' | 'fabricated' | 'active', value: boolean): void {
+    void this.run(() => this.repo.updateProduct(p.id, { [key]: value }));
+  }
+
+  // ---- Confección (HU-42) ----
+  readonly confFields: { key: ConfKey; label: string }[] = [
+    { key: 'conf_fabric_w', label: 'Tela ancho' },
+    { key: 'conf_fabric_h', label: 'Tela alto' },
+    { key: 'conf_tube', label: 'Tubo' },
+    { key: 'conf_bottom', label: 'G polvo' },
+    { key: 'conf_cenefa', label: 'Cenefa' },
+    { key: 'conf_roller', label: 'Rodillo dúo' },
+  ];
+  hasConf(p: Product): boolean {
+    return this.confFields.some((f) => p[f.key] !== null && p[f.key] !== undefined);
+  }
+  confValue(p: Product, key: ConfKey): string {
+    const v = p[key];
+    return v === null || v === undefined ? '' : String(Number(v)).replace('.', ',');
+  }
+  setConf(p: Product, key: ConfKey, raw: string): void {
+    const t = raw.trim().replace('−', '-');
+    const value = t === '' ? null : parseDecimal(t);
+    if (value !== null && (!Number.isFinite(value) || Math.abs(value) > 80)) {
+      this.error.set('Escribe un número en cm, por ejemplo −4 o 20 (máximo 80).');
+      return;
+    }
     void this.run(() => this.repo.updateProduct(p.id, { [key]: value }));
   }
 

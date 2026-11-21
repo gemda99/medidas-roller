@@ -8,13 +8,8 @@ import { Quotation, STATUS_LABEL } from '../../domain/models/quotation';
 import { buildRows, footerHeight, ImageRow, paginate } from '../../domain/quote-image/quote-pages';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
 import { toUserMessage } from '../../shared/errors';
+import { canShareFiles, downloadFiles, PngFile, renderPng, revokeFiles, shareFiles, toFiles, watchZoom } from '../../shared/images/png-export';
 import { QuoteImagePageComponent } from './quote-image-page.component';
-
-interface Shot {
-  url: string;
-  blob: Blob;
-  name: string;
-}
 
 /**
  * Imagen de la cotización (HU-34/35). En borrador muestra la vista previa y permite emitir:
@@ -119,7 +114,7 @@ export class QuoteImagePage implements OnInit, OnDestroy {
   readonly business = signal<BusinessSettings>({ ...EMPTY_BUSINESS });
   readonly logo = signal<string | null>(null);
   readonly docs = signal<StoredDocument[]>([]);
-  readonly shots = signal<Shot[]>([]);
+  readonly shots = signal<PngFile[]>([]);
   readonly zoom = signal(0.5);
 
   readonly pages = computed<ImageRow[][]>(() => {
@@ -159,8 +154,7 @@ export class QuoteImagePage implements OnInit, OnDestroy {
   }
 
   canShare(): boolean {
-    const files = this.files();
-    return typeof navigator !== 'undefined' && !!navigator.canShare && files.length > 0 && navigator.canShare({ files });
+    return canShareFiles(this.shots());
   }
 
   private async load(): Promise<void> {
@@ -178,11 +172,8 @@ export class QuoteImagePage implements OnInit, OnDestroy {
   }
 
   private watchWidth(): void {
-    const el = this.preview()?.nativeElement;
-    if (!el || typeof ResizeObserver === 'undefined') return;
     this.observer?.disconnect();
-    this.observer = new ResizeObserver(() => this.zoom.set(Math.min(1, el.clientWidth / 1080)));
-    this.observer.observe(el);
+    this.observer = watchZoom(this.preview()?.nativeElement, (z) => this.zoom.set(z));
   }
 
   askIssue(): void {
@@ -219,19 +210,8 @@ export class QuoteImagePage implements OnInit, OnDestroy {
     this.error.set(null);
     try {
       this.appRef.tick();
-      // La letra Inter va incluida en la app (no desde Google): se fuerza su carga antes de dibujar.
-      if (document.fonts) {
-        await Promise.all(['400', '500', '600', '700', '800'].map((w) => document.fonts.load(`${w} 24px Inter`, 'Cotización Ñ $0')));
-        await document.fonts.ready;
-      }
-      const { domToBlob } = await import('modern-screenshot');
-      const blobs: Blob[] = [];
-      for (const ref of this.captures()) {
-        const el = (ref.nativeElement as HTMLElement).querySelector('.sheet') as HTMLElement;
-        const blob = await domToBlob(el, { type: 'image/png', scale: 1, backgroundColor: '#ffffff', timeout: 15000 });
-        if (!blob) throw new Error('No se pudo crear la imagen. Intenta de nuevo.');
-        blobs.push(blob);
-      }
+      const els = this.captures().map((ref) => (ref.nativeElement as HTMLElement).querySelector('.sheet') as HTMLElement);
+      const blobs = await renderPng(els);
       await this.biz.saveDocuments(q.rectification_id, q.id, 'cotizacion', blobs);
       this.docs.set(await this.biz.listDocuments(q.id));
       this.setShots(blobs, q.number);
@@ -265,38 +245,24 @@ export class QuoteImagePage implements OnInit, OnDestroy {
 
   private setShots(blobs: Blob[], number: string): void {
     this.clearShots();
-    const n = blobs.length;
-    this.shots.set(
-      blobs.map((blob, i) => ({ blob, url: URL.createObjectURL(blob), name: n > 1 ? `${number}-${i + 1}de${n}.png` : `${number}.png` })),
-    );
+    this.shots.set(toFiles(blobs, number));
   }
 
   private clearShots(): void {
-    for (const s of this.shots()) URL.revokeObjectURL(s.url);
+    revokeFiles(this.shots());
     this.shots.set([]);
-  }
-
-  private files(): File[] {
-    return this.shots().map((s) => new File([s.blob], s.name, { type: 'image/png' }));
   }
 
   /** Abre el menú de compartir del teléfono (WhatsApp aparece ahí). Debe llamarse directo desde el toque. */
   async share(): Promise<void> {
     try {
-      await navigator.share({ files: this.files(), title: `Cotización ${this.quote()?.number ?? ''}` });
-    } catch (e) {
-      if ((e as DOMException)?.name !== 'AbortError') this.error.set('No se pudo compartir. Descarga la imagen y envíala por WhatsApp.');
+      await shareFiles(this.shots(), `Cotización ${this.quote()?.number ?? ''}`);
+    } catch {
+      this.error.set('No se pudo compartir. Descarga la imagen y envíala por WhatsApp.');
     }
   }
 
   downloadAll(): void {
-    for (const s of this.shots()) {
-      const a = document.createElement('a');
-      a.href = s.url;
-      a.download = s.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
+    downloadFiles(this.shots());
   }
 }

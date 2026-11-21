@@ -59,11 +59,25 @@ export function footerHeight(...texts: TextBlock[][]): number {
   return FOOTER_BASE + texts.reduce((s, t) => s + textHeight(t), 0);
 }
 
-/** Divide las filas en páginas. La última página debe dejar espacio para el pie (totales + textos). */
-export function paginate(rows: ImageRow[], footer: number, max = PAGE_MAX): ImageRow[][] {
-  const pages: ImageRow[][] = [];
-  let page: ImageRow[] = [];
-  let used = HEADER_FIRST;
+export interface PageRow {
+  type: string;
+  height: number;
+}
+
+/**
+ * Divide las filas en páginas. La última página debe dejar espacio para el pie (totales + textos).
+ * Genérica: la usan la cotización y la hoja de confección (filas 'group' = título de ubicación).
+ */
+export function paginate<T extends PageRow>(
+  rows: T[],
+  footer: number,
+  max = PAGE_MAX,
+  headerFirst = HEADER_FIRST,
+  headerNext = HEADER_NEXT,
+): T[][] {
+  const pages: T[][] = [];
+  let page: T[] = [];
+  let used = headerFirst;
   for (const r of rows) {
     if (used + r.height > max && page.length) {
       // No dejar un título de ubicación huérfano al final de la página.
@@ -71,7 +85,7 @@ export function paginate(rows: ImageRow[], footer: number, max = PAGE_MAX): Imag
       const carry = last?.type === 'group' ? [page.pop()!] : [];
       pages.push(page);
       page = carry;
-      used = HEADER_NEXT + carry.reduce((s, x) => s + x.height, 0);
+      used = headerNext + carry.reduce((s, x) => s + x.height, 0);
     }
     page.push(r);
     used += r.height;

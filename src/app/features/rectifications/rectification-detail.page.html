@@ -141,6 +141,16 @@
       }
     </section>
 
+    @if (curtainCount() > 0) {
+      <section class="card stack">
+        <div class="spread">
+          <h2>Confección</h2>
+          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'confeccion']">Hoja para fábrica</a>
+        </div>
+        <p class="muted" style="margin:0">Imagen sin precios con medidas de tela, tubo y G polvo.</p>
+      </section>
+    }
+
     @if (completeIssues().length) {
       <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
     }

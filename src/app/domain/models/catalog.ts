@@ -26,6 +26,13 @@ export interface Product {
   has_mechanism: boolean;
   active: boolean;
   sort_order: number;
+  /** Reglas de confección en cm sobre la medida de terreno; null = la pieza no aplica (HU-42). */
+  conf_fabric_w?: number | null;
+  conf_fabric_h?: number | null;
+  conf_tube?: number | null;
+  conf_bottom?: number | null;
+  conf_cenefa?: number | null;
+  conf_roller?: number | null;
   product_components: ProductComponent[];
   product_options: ProductOption[];
 }
