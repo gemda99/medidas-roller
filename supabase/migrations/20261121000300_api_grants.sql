@@ -16,3 +16,5 @@ grant execute on function public.create_customer_with_address(text, text, text, 
 
 -- anon (sin sesión) no necesita nada de estas tablas.
 revoke all on public.profiles, public.customers, public.customer_addresses from anon;
+-- TRUNCATE no respeta RLS: nadie desde la app lo necesita.
+revoke truncate, references, trigger on public.profiles, public.customers, public.customer_addresses from authenticated;
