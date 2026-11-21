@@ -18,3 +18,18 @@ export function parseDecimal(raw: string | number | null | undefined): number {
   const s = String(raw ?? '').trim().replace(',', '.');
   return s === '' ? NaN : Number(s);
 }
+
+const CLP = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+
+/** 21000 → '$21.000'. null → '' (sin precio). */
+export function formatClp(n: number | null | undefined): string {
+  return n === null || n === undefined || !Number.isFinite(n) ? '' : CLP.format(n).replace(/\s/g, '');
+}
+
+/** Lee montos en pesos escritos a mano: '$21.000' o '21000' → 21000. Vacío → null. Inválido → NaN. */
+export function parseClp(raw: string | null | undefined): number | null {
+  const s = String(raw ?? '').trim();
+  if (!s) return null;
+  if (!/^\$?\s*[\d.]+$/.test(s)) return NaN;
+  return Number(s.replace(/[$.\s]/g, ''));
+}

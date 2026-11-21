@@ -10,6 +10,7 @@ import {
   CurtainIssue, componentLabel, duplicatePayload, reshapeComponents, validateCurtain,
 } from '../../domain/rectification/curtain-rules';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
+import { CurtainPhotos } from './curtain-photos';
 import { Segmented, SegmentOption } from '../../shared/components/segmented';
 import { DraftStore } from '../../shared/drafts/draft-store';
 import { toUserMessage } from '../../shared/errors';
@@ -30,7 +31,7 @@ const CHAIN_PRESETS = ['1', '1.5', '2'];
 
 @Component({
   selector: 'app-curtain-editor-page',
-  imports: [ReactiveFormsModule, RouterLink, Segmented, ConfirmDialog],
+  imports: [ReactiveFormsModule, RouterLink, Segmented, ConfirmDialog, CurtainPhotos],
   templateUrl: './curtain-editor.page.html',
   styleUrl: './curtain-editor.page.css',
 })
@@ -75,6 +76,7 @@ export class CurtainEditorPage implements OnInit {
   readonly cortinaAccessories = computed(() => (this.catalog()?.accessories ?? []).filter((a) => a.scope === 'cortina'));
 
   private readonly confirm = viewChild.required(ConfirmDialog);
+  private readonly photos = viewChild(CurtainPhotos);
   private draftKey = '';
   private submitted = false;
 
@@ -325,8 +327,13 @@ export class CurtainEditorPage implements OnInit {
     }
     this.saving.set(true);
     try {
-      await this.repo.saveCurtain(payload);
+      const savedId = await this.repo.saveCurtain(payload);
       this.drafts.clear(this.draftKey);
+      const failed = (await this.photos()?.uploadPending(savedId)) ?? 0;
+      if (failed) {
+        this.error.set(`La cortina se guardó, pero ${failed} foto${failed === 1 ? '' : 's'} no se subió. Ábrela y vuelve a agregarla.`);
+        if (!andAnother) return;
+      }
       if (andAnother) {
         const locationId = payload.location_id;
         this.draftKey = `curtain:new:${this.rectId}:${locationId}`;

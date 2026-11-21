@@ -1,0 +1,128 @@
+<div class="page">
+  <div class="tabs" role="tablist" aria-label="Catálogo">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'productos'" [class.on]="tab() === 'productos'" (click)="tab.set('productos')">Productos</button>
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'colores'" [class.on]="tab() === 'colores'" (click)="tab.set('colores')">Colores</button>
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'accesorios'" [class.on]="tab() === 'accesorios'" (click)="tab.set('accesorios')">Accesorios</button>
+  </div>
+
+  @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
+  @if (info()) { <div class="alert alert-ok" role="status">{{ info() }}</div> }
+
+  @if (loading()) {
+    <div class="skeleton"></div><div class="skeleton"></div>
+  } @else if (tab() === 'productos') {
+    @for (p of products(); track p.id) {
+      <section class="card prod" [class.off]="!p.active">
+        <div class="head">
+          <span class="code">{{ p.code }}</span>
+          <input class="grow" [value]="p.name" [attr.aria-label]="'Nombre de ' + p.code" (change)="rename(p, $any($event.target).value)" />
+        </div>
+        @if (p.kind === 'sistema') {
+          <span class="muted">Doble: atrás {{ componentCode(p, 'fondo') }} · adelante {{ componentCode(p, 'frente') }}</span>
+        }
+        <div class="flags">
+          <label>Cenefa
+            <select [value]="p.cenefa_mode" (change)="setCenefa(p, $any($event.target).value)">
+              <option value="no">No lleva</option>
+              <option value="opcional">Opcional (se cobra)</option>
+              <option value="incluida">Incluida</option>
+            </select>
+          </label>
+          <label><input type="checkbox" [checked]="p.has_mechanism" (change)="setFlag(p, 'has_mechanism', $any($event.target).checked)" /> Con mecanismo (motor/cadena)</label>
+          <label><input type="checkbox" [checked]="p.fabricated" (change)="setFlag(p, 'fabricated', $any($event.target).checked)" /> Lo fabricamos</label>
+          <label><input type="checkbox" [checked]="p.active" (change)="setFlag(p, 'active', $any($event.target).checked)" /> Activo</label>
+        </div>
+        <div class="opts">
+          <span class="muted">Opciones:</span>
+          @for (o of p.product_options; track o.id) {
+            <span class="opt" [class.off]="!o.active">{{ o.name }}<button type="button" [attr.aria-label]="'Quitar opción ' + o.name" (click)="removeOption(o.id)">×</button></span>
+          }
+          <input class="mini" placeholder="Nueva opción" [value]="optionDraft()[p.id] ?? ''" [attr.aria-label]="'Nueva opción para ' + p.code"
+                 (input)="setOptionDraft(p.id, $any($event.target).value)" (keydown.enter)="addOption(p)" />
+          <button type="button" class="btn" style="min-height:36px" (click)="addOption(p)">Agregar</button>
+        </div>
+      </section>
+    }
+
+    @if (showNew()) {
+      <section class="card stack">
+        <h2>Nuevo producto</h2>
+        <div class="new">
+          <div class="field"><label for="ncode">Código</label><input id="ncode" [(ngModel)]="newProduct.code" placeholder="Ej.: VC-BO" /></div>
+          <div class="field"><label for="nname">Nombre</label><input id="nname" [(ngModel)]="newProduct.name" placeholder="Ej.: Velcro blackout" /></div>
+          <div class="field">
+            <label for="nkind">Tipo</label>
+            <select id="nkind" [(ngModel)]="newProduct.kind">
+              <option value="tela">Una tela</option>
+              <option value="sistema">Doble (dos telas)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ncen">Cenefa</label>
+            <select id="ncen" [(ngModel)]="newProduct.cenefa_mode">
+              <option value="no">No lleva</option><option value="opcional">Opcional (se cobra)</option><option value="incluida">Incluida</option>
+            </select>
+          </div>
+          @if (newProduct.kind === 'sistema') {
+            <div class="field">
+              <label for="nfondo">Tela de atrás</label>
+              <select id="nfondo" [(ngModel)]="newProduct.fondo_id">@for (t of telas(); track t.id) { <option [value]="t.id">{{ t.code }}</option> }</select>
+            </div>
+            <div class="field">
+              <label for="nfrente">Tela de adelante</label>
+              <select id="nfrente" [(ngModel)]="newProduct.frente_id">@for (t of telas(); track t.id) { <option [value]="t.id">{{ t.code }}</option> }</select>
+            </div>
+          }
+        </div>
+        <div class="flags">
+          <label><input type="checkbox" [(ngModel)]="newProduct.has_mechanism" /> Con mecanismo (motor/cadena)</label>
+          <label><input type="checkbox" [(ngModel)]="newProduct.fabricated" /> Lo fabricamos</label>
+        </div>
+        <div class="row">
+          <button type="button" class="btn" (click)="showNew.set(false)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="createProduct()">Crear producto</button>
+        </div>
+      </section>
+    } @else {
+      <button type="button" class="btn btn-primary btn-block" (click)="showNew.set(true)">+ Nuevo producto</button>
+    }
+  } @else if (tab() === 'colores') {
+    <section class="card">
+      @for (c of colors(); track c.id) {
+        <div class="row-item" [class.off]="!c.active">
+          <input class="grow" [value]="c.name" [attr.aria-label]="'Color ' + c.name" (change)="renameColor(c, $any($event.target).value)" />
+          <button type="button" class="btn" (click)="toggleColor(c)">{{ c.active ? 'Desactivar' : 'Activar' }}</button>
+        </div>
+      }
+      <form class="row-item" (submit)="$event.preventDefault(); addColor()">
+        <input class="grow" name="nc" [(ngModel)]="newColor" placeholder="Nuevo color, ej.: Beige-3" aria-label="Nuevo color" />
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </form>
+    </section>
+  } @else {
+    <section class="card">
+      @for (a of accessories(); track a.id) {
+        <div class="row-item" [class.off]="!a.active">
+          <input class="grow" [value]="a.name" [attr.aria-label]="'Accesorio ' + a.name" (change)="renameAccessory(a, $any($event.target).value)" />
+          <div class="flags">
+            <label>Se cobra
+              <select [value]="a.scope" (change)="setAccessory(a, { scope: $any($event.target).value })">
+                <option value="cortina">por cortina</option>
+                <option value="cotizacion">por cotización</option>
+              </select>
+            </label>
+          </div>
+          <button type="button" class="btn" (click)="setAccessory(a, { active: !a.active })">{{ a.active ? 'Desactivar' : 'Activar' }}</button>
+        </div>
+      }
+      <form class="row-item" (submit)="$event.preventDefault(); addAccessory()">
+        <input class="grow" name="na" [(ngModel)]="newAccessory" placeholder="Nuevo accesorio" aria-label="Nuevo accesorio" />
+        <select name="ns" [(ngModel)]="newAccessoryScope" aria-label="Se cobra" style="min-height:44px; border-radius:10px">
+          <option value="cortina">por cortina</option>
+          <option value="cotizacion">por cotización</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </form>
+    </section>
+  }
+</div>

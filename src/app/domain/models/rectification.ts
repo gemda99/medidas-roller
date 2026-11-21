@@ -35,6 +35,7 @@ export interface Curtain {
   curtain_components: CurtainComponent[];
   curtain_options: { product_option_id: string }[];
   curtain_accessories: { accessory_id: string; quantity: number }[];
+  curtain_photos?: { id: string }[];
 }
 
 export interface Location {

@@ -13,12 +13,12 @@ Angular 22 (standalone, signals, zoneless) · Supabase (Auth, PostgreSQL con RLS
 | Sprint | Estado |
 |---|---|
 | 1 · Fundamentos y clientes | Probado por Gabriel con Supabase real. Falta HU-11 (GitHub + Vercel). |
-| 2 · Rectificación en terreno | Código y pruebas automáticas en verde; falta prueba en Supabase real y en teléfono. |
+| 2 · Rectificación en terreno | Probado por Gabriel con Supabase real (incluidos ajustes: cuadros, orden del doble, caída por tela, VC). |
+| 3 · Fotos y tarifarios | Código y pruebas automáticas en verde; falta prueba en Supabase real y en teléfono. |
 
 ### Aplicar migraciones nuevas en Supabase
 
-Cada sprint trae archivos nuevos en `supabase/migrations/`. Para el Sprint 2 hay un archivo listo para copiar y pegar:
-`supabase/aplicar_sprint2.sql` → Supabase › Editor SQL › nueva consulta › Correr (una sola vez).
+Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`.
 
 ## Puesta en marcha (una sola vez)
 
@@ -54,7 +54,7 @@ npm start                 # http://localhost:4200
 
 ```bash
 npm test -- --watch=false   # unitarias (Vitest): validaciones, errores, guards, login, lista de clientes
-npm run test:db             # migraciones + RLS en PostgreSQL embebido (PGlite), sin Supabase (27 pruebas)
+npm run test:db             # migraciones + RLS en PostgreSQL embebido (PGlite), sin Supabase (37 pruebas)
 ```
 
 ## Estructura

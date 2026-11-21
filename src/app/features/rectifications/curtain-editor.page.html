@@ -149,7 +149,7 @@
       <label for="notes">Nota</label>
       <textarea id="notes" formControlName="notes" placeholder="Medida alternativa, «bien arriba»…"></textarea>
     </div>
-    <p class="hint">Las fotos se agregan desde el Sprint 3.</p>
+    <app-curtain-photos [rectificationId]="rectId" [curtainId]="curtainId" [disabled]="locked()" />
 
     <div class="bar">
       @if (!isNew) {

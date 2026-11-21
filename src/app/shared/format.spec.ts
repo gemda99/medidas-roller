@@ -19,3 +19,20 @@ describe('formatos', () => {
     expect(parseDecimal('abc')).toBeNaN();
   });
 });
+
+import { formatClp, parseClp } from './format';
+
+describe('pesos chilenos', () => {
+  it('formatea con punto de miles y sin decimales', () => {
+    expect(formatClp(21000)).toBe('$21.000');
+    expect(formatClp(246425)).toBe('$246.425');
+    expect(formatClp(null)).toBe('');
+  });
+  it('lee montos escritos con o sin $ y puntos', () => {
+    expect(parseClp('$21.000')).toBe(21000);
+    expect(parseClp('100000')).toBe(100000);
+    expect(parseClp('  ')).toBeNull();
+    expect(parseClp('21,5')).toBeNaN();
+    expect(parseClp('-5')).toBeNaN();
+  });
+});

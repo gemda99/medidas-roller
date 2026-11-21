@@ -2,7 +2,7 @@ import { Component, computed, DestroyRef, inject, OnInit, signal, viewChild } fr
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  LucideArrowDown, LucideArrowUp, LucideCopy, LucidePencil, LucidePlus, LucideTrash2,
+  LucideArrowDown, LucideArrowUp, LucideCamera, LucideCopy, LucidePencil, LucidePlus, LucideTrash2,
 } from '@lucide/angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogRepository } from '../../data-access/repositories/catalog.repository';
@@ -26,7 +26,7 @@ type Pending =
 
 @Component({
   selector: 'app-rectification-detail-page',
-  imports: [ReactiveFormsModule, RouterLink, ConfirmDialog, LucidePlus, LucidePencil, LucideTrash2, LucideArrowUp, LucideArrowDown, LucideCopy],
+  imports: [ReactiveFormsModule, RouterLink, ConfirmDialog, LucidePlus, LucidePencil, LucideTrash2, LucideArrowUp, LucideArrowDown, LucideCopy, LucideCamera],
   templateUrl: './rectification-detail.page.html',
   styleUrl: './rectification-detail.page.css',
 })

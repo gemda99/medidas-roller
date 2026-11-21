@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { SUPABASE } from '../supabase/supabase.client';
+import { PhotoRepository } from './photo.repository';
 import {
   CurtainPayload,
   Location,
@@ -19,7 +20,8 @@ const TREE = `${SUMMARY},
       has_cenefa, swap_layers, notes, sort_order, created_at,
       curtain_components(id, role, product_id, color_name, width_cm, height_cm, fall, motorized),
       curtain_options(product_option_id),
-      curtain_accessories(accessory_id, quantity)))`;
+      curtain_accessories(accessory_id, quantity),
+      curtain_photos(id)))`;
 
 export interface NewRectification {
   customer_id: string;
@@ -37,6 +39,7 @@ const bySort = (a: Sortable, b: Sortable) =>
 @Injectable({ providedIn: 'root' })
 export class RectificationRepository {
   private readonly db = inject(SUPABASE);
+  private readonly photos = inject(PhotoRepository);
 
   async list(opts: { status?: RectificationStatus; customerId?: string; limit?: number } = {}): Promise<RectificationSummary[]> {
     let q = this.db.from('rectifications').select(SUMMARY).order('updated_at', { ascending: false }).limit(opts.limit ?? 100);
@@ -73,6 +76,7 @@ export class RectificationRepository {
   }
 
   async remove(id: string): Promise<void> {
+    await this.photos.removeForCurtains(await this.curtainIdsOf('rectification', id));
     const { data, error } = await this.db.from('rectifications').delete().eq('id', id).select('id');
     if (error) throw error;
     if (!data?.length) throw { code: '42501', message: 'permission denied' };
@@ -99,6 +103,7 @@ export class RectificationRepository {
   }
 
   async removeLocation(id: string): Promise<void> {
+    await this.photos.removeForCurtains(await this.curtainIdsOf('location', id));
     const { error } = await this.db.from('locations').delete().eq('id', id);
     if (error) throw error;
   }
@@ -111,7 +116,19 @@ export class RectificationRepository {
   }
 
   async removeCurtain(id: string): Promise<void> {
+    await this.photos.removeForCurtains([id]);
     const { error } = await this.db.from('curtains').delete().eq('id', id);
     if (error) throw error;
+  }
+
+  /** Cortinas de una ubicación o rectificación, para borrar antes sus fotos de Storage. */
+  private async curtainIdsOf(kind: 'location' | 'rectification', id: string): Promise<string[]> {
+    const q =
+      kind === 'location'
+        ? this.db.from('curtains').select('id').eq('location_id', id)
+        : this.db.from('curtains').select('id, locations!inner(rectification_id)').eq('locations.rectification_id', id);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map((r: { id: string }) => r.id);
   }
 }

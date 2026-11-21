@@ -69,7 +69,10 @@
             @let k = card(c);
             <article class="ccard">
               <a class="ccard-body" [routerLink]="['/rectificaciones', r.id, 'cortinas', c.id]" [attr.aria-label]="'Editar cortina ' + (n + 1) + ' ' + k.code">
-                <span class="ccard-top"><span class="code">{{ k.code }}</span><span class="num">#{{ n + 1 }}</span></span>
+                <span class="ccard-top">
+                  <span class="code">{{ k.code }}</span>
+                  <span class="num">@if (c.curtain_photos?.length) { <svg lucideCamera [size]="13" aria-hidden="true"></svg> {{ c.curtain_photos!.length }} · }#{{ n + 1 }}</span>
+                </span>
                 <span class="pname">{{ c.label || k.name }}</span>
                 @for (layer of k.layers; track $index) {
                   <span class="layer">

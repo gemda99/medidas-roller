@@ -1,0 +1,188 @@
+<div class="page">
+  <a routerLink="/admin/tarifarios" class="muted">‹ Tarifarios</a>
+
+  @if (loading()) {
+    <div class="skeleton" style="height:120px"></div>
+  } @else if (list(); as l) {
+    <div class="spread">
+      <h2>{{ l.name }}</h2>
+      <span class="chip" [class.ok]="l.status === 'vigente'" [class.draft]="l.status === 'borrador'">
+        {{ l.status === 'borrador' ? 'Borrador' : l.status === 'vigente' ? 'Vigente' : 'Archivado' }}
+      </span>
+    </div>
+
+    @if (!editable()) {
+      <div class="alert alert-warn" role="status">
+        Este tarifario {{ l.status === 'vigente' ? 'está en uso' : 'está archivado' }} y no se edita.
+        <button type="button" class="btn" style="margin-left:8px" [disabled]="busy()" (click)="copy()">Crear copia para editar</button>
+      </div>
+    }
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
+    @if (saved()) { <div class="alert alert-ok" role="status" aria-live="polite">{{ saved() }}</div> }
+
+    <section class="card stack">
+      <h2>General</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="name">Nombre del tarifario</label>
+          <input id="name" [value]="l.name" [disabled]="!editable()" (change)="setSetting('name', $any($event.target).value, 'Nombre')" />
+        </div>
+        <div class="field">
+          <label for="gmin">Mínimo de venta por cortina</label>
+          <input id="gmin" class="money" inputmode="numeric" [value]="fmt(l.general_min_price)" [disabled]="!editable()"
+                 (change)="setMoney('general_min_price', $any($event.target).value, 'Mínimo general')" />
+          <span class="hint">Se usa si el producto no tiene mínimo propio.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>Precio por m² de cada tela</h2>
+      @if (editable() && missing().length) {
+        <div class="alert alert-warn" role="status">Para activar falta el precio por m² de: {{ missing().join(', ') }}.</div>
+      }
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Producto</th><th>Precio m²</th><th>Mínimo propio <span class="muted">(opcional)</span></th></tr></thead>
+          <tbody>
+            @for (p of telas(); track p.id) {
+              @let pp = productPrice(p.id);
+              <tr [class.missing]="editable() && missing().includes(p.code)">
+                <td><strong>{{ p.code }}</strong><br /><span class="muted">{{ p.name }}</span></td>
+                <td><input class="money" inputmode="numeric" [value]="fmt(pp.price_m2)" [disabled]="!editable()"
+                           [attr.aria-label]="'Precio por m² ' + p.code" (change)="setProductPrice(p, 'price_m2', $any($event.target).value)" /></td>
+                <td><input class="money" inputmode="numeric" [value]="fmt(pp.min_price)" [disabled]="!editable()" placeholder="General"
+                           [attr.aria-label]="'Mínimo ' + p.code" (change)="setProductPrice(p, 'min_price', $any($event.target).value)" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>Sistemas dobles</h2>
+      <p class="muted" style="margin:0">El precio es la suma de sus dos telas; aquí va solo su mínimo de venta.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Producto</th><th>Mínimo del doble</th></tr></thead>
+          <tbody>
+            @for (p of sistemas(); track p.id) {
+              <tr>
+                <td><strong>{{ p.code }}</strong><br /><span class="muted">{{ p.name }}</span></td>
+                <td><input class="money" inputmode="numeric" [value]="fmt(productPrice(p.id).min_price)" [disabled]="!editable()" placeholder="General"
+                           [attr.aria-label]="'Mínimo ' + p.code" (change)="setProductPrice(p, 'min_price', $any($event.target).value)" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>Adicionales</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="motor">Motor (por motor)</label>
+          <input id="motor" class="money" inputmode="numeric" [value]="fmt(l.motor_price)" [disabled]="!editable()"
+                 (change)="setMoney('motor_price', $any($event.target).value, 'Motor')" />
+        </div>
+        <div class="field">
+          <label for="cenefa">Cenefa (por metro de ancho)</label>
+          <input id="cenefa" class="money" inputmode="numeric" [value]="fmt(l.cenefa_price_ml)" [disabled]="!editable()"
+                 (change)="setMoney('cenefa_price_ml', $any($event.target).value, 'Cenefa')" />
+        </div>
+        <div class="field">
+          <label for="rc">Control remoto: 1 cada cuántos motores</label>
+          <input id="rc" inputmode="numeric" [value]="l.remote_control_per_motors" [disabled]="!editable()"
+                 (change)="setInt('remote_control_per_motors', $any($event.target).value, 'Control remoto')" />
+        </div>
+      </div>
+      @for (a of accessories(); track a.id) {
+        <div class="field">
+          <label [for]="'acc' + a.id">{{ a.name }} <span class="muted">({{ a.scope === 'cortina' ? 'por unidad en la cortina' : 'por unidad en la cotización' }})</span></label>
+          <input [id]="'acc' + a.id" class="money" inputmode="numeric" [value]="fmt(accessoryPrice(a.id))" [disabled]="!editable()"
+                 placeholder="Sin precio" (change)="setAccessoryPrice(a, $any($event.target).value)" />
+        </div>
+      }
+    </section>
+
+    <section class="card stack">
+      <h2>Instalación</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="imode">Cobro por defecto</label>
+          <select id="imode" [value]="l.installation_mode" [disabled]="!editable()"
+                  (change)="setSetting('installation_mode', $any($event.target).value, 'Modo de instalación')">
+            <option value="proyecto">Por proyecto (monto fijo)</option>
+            <option value="cortina">Por cortina</option>
+            <option value="manual">Manual en cada cotización</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="iproj">Monto por proyecto</label>
+          <input id="iproj" class="money" inputmode="numeric" [value]="fmt(l.installation_project_price)" [disabled]="!editable()"
+                 (change)="setMoney('installation_project_price', $any($event.target).value, 'Instalación por proyecto')" />
+        </div>
+        <div class="field">
+          <label for="icur">Monto por cortina</label>
+          <input id="icur" class="money" inputmode="numeric" [value]="fmt(l.installation_per_curtain_price)" [disabled]="!editable()"
+                 (change)="setMoney('installation_per_curtain_price', $any($event.target).value, 'Instalación por cortina')" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <h2>IVA, redondeo y descuentos</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="iva">IVA (%)</label>
+          <input id="iva" inputmode="decimal" [value]="pct(l.iva_rate)" [disabled]="!editable()" (change)="setPercent('iva_rate', $any($event.target).value, 'IVA')" />
+        </div>
+        <div class="field">
+          <label for="ivam">IVA por defecto en cotizaciones</label>
+          <select id="ivam" [value]="l.iva_mode_default" [disabled]="!editable()" (change)="setSetting('iva_mode_default', $any($event.target).value, 'IVA por defecto')">
+            <option value="excluido">Se suma al final</option>
+            <option value="incluido">Precios con IVA incluido</option>
+            <option value="sin">Sin IVA</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="round">Redondeo</label>
+          <select id="round" [value]="l.rounding_step" [disabled]="!editable()" (change)="setRounding($any($event.target).value)">
+            <option [value]="1">Al peso</option>
+            <option [value]="10">A $10</option>
+            <option [value]="100">A $100</option>
+            <option [value]="1000">A $1.000</option>
+          </select>
+        </div>
+      </div>
+      <label class="check">
+        <input type="checkbox" [checked]="l.medidor_discount_enabled" [disabled]="!editable()"
+               (change)="setSetting('medidor_discount_enabled', $any($event.target).checked, 'Descuento del medidor')" />
+        El medidor puede aplicar descuento
+      </label>
+      @if (l.medidor_discount_enabled) {
+        <div class="field" style="max-width:220px">
+          <label for="maxd">Descuento máximo del medidor (%)</label>
+          <input id="maxd" inputmode="decimal" [value]="l.medidor_max_discount_pct" [disabled]="!editable()"
+                 (change)="setPercent('medidor_max_discount_pct', $any($event.target).value, 'Descuento máximo')" />
+        </div>
+      }
+    </section>
+
+    @if (editable()) {
+      <div class="stack">
+        <button type="button" class="btn btn-primary btn-block" [disabled]="busy() || missing().length > 0" (click)="activate()">
+          Activar este tarifario
+        </button>
+        @if (missing().length) { <span class="hint" style="text-align:center">Completa los precios por m² que faltan para activarlo.</span> }
+        <button type="button" class="btn btn-danger btn-block" (click)="askDelete()">Eliminar borrador</button>
+      </div>
+    }
+  } @else {
+    <div class="alert alert-error" role="alert">{{ error() }}</div>
+  }
+</div>
+
+<app-confirm-dialog title="¿Eliminar este borrador de tarifario?" message="Se borran sus precios. El tarifario vigente no se toca." (confirmed)="remove()" />

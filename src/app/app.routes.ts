@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guards';
+import { adminGuard, authGuard, guestGuard } from './core/guards/auth.guards';
 import { Shell } from './core/layout/shell';
 
 export const routes: Routes = [
@@ -70,6 +70,34 @@ export const routes: Routes = [
         path: 'rectificaciones/:id/cortinas/:cid',
         title: 'Cortina · Medidas Roller',
         loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/admin-layout').then((m) => m.AdminLayout),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'tarifarios' },
+          {
+            path: 'tarifarios',
+            title: 'Tarifarios · Medidas Roller',
+            loadComponent: () => import('./features/admin/price-lists.page').then((m) => m.PriceListsPage),
+          },
+          {
+            path: 'tarifarios/:id',
+            title: 'Tarifario · Medidas Roller',
+            loadComponent: () => import('./features/admin/price-list-edit.page').then((m) => m.PriceListEditPage),
+          },
+          {
+            path: 'catalogo',
+            title: 'Catálogo · Medidas Roller',
+            loadComponent: () => import('./features/admin/catalog-admin.page').then((m) => m.CatalogAdminPage),
+          },
+          {
+            path: 'usuarios',
+            title: 'Usuarios · Medidas Roller',
+            loadComponent: () => import('./features/admin/users.page').then((m) => m.UsersPage),
+          },
+        ],
       },
       {
         path: 'clientes/:id/editar',

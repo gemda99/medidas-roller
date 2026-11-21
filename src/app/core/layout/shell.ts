@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { LucideClipboardList, LucideHouse, LucideLogOut, LucideUsers } from '@lucide/angular';
+import { LucideClipboardList, LucideHouse, LucideLogOut, LucideSettings, LucideUsers } from '@lucide/angular';
 import { AuthService } from '../auth/auth.service';
 
 /**
@@ -9,7 +9,7 @@ import { AuthService } from '../auth/auth.service';
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideHouse, LucideUsers, LucideLogOut, LucideClipboardList],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideHouse, LucideUsers, LucideLogOut, LucideClipboardList, LucideSettings],
   template: `
     <div class="layout">
       <nav class="side" aria-label="Menú principal">
@@ -23,6 +23,11 @@ import { AuthService } from '../auth/auth.service';
         <a routerLink="/clientes" routerLinkActive="on">
           <svg lucideUsers [size]="20" aria-hidden="true"></svg> Clientes
         </a>
+        @if (auth.isAdmin()) {
+          <a routerLink="/admin" routerLinkActive="on">
+            <svg lucideSettings [size]="20" aria-hidden="true"></svg> Administración
+          </a>
+        }
         <div class="who">
           <strong>{{ auth.profile()?.full_name }}</strong>
           <span>{{ auth.isAdmin() ? 'Administrador' : 'Medidor' }}</span>
@@ -49,6 +54,11 @@ import { AuthService } from '../auth/auth.service';
         <a routerLink="/clientes" routerLinkActive="on">
           <svg lucideUsers [size]="22" aria-hidden="true"></svg><span>Clientes</span>
         </a>
+        @if (auth.isAdmin()) {
+          <a routerLink="/admin" routerLinkActive="on">
+            <svg lucideSettings [size]="22" aria-hidden="true"></svg><span>Admin</span>
+          </a>
+        }
         <button type="button" (click)="signOut()">
           <svg lucideLogOut [size]="22" aria-hidden="true"></svg><span>Salir</span>
         </button>
