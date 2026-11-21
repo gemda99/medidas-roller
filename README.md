@@ -20,7 +20,7 @@ Angular 22 (standalone, signals, zoneless) · Supabase (Auth, PostgreSQL con RLS
 
 ### Aplicar migraciones nuevas en Supabase
 
-Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`, `aplicar_sprint4.sql`, `aplicar_sprint5.sql`.
+Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`, `aplicar_sprint4.sql`, `aplicar_sprint5.sql`, `aplicar_sprint5_garantia.sql`.
 
 ## Puesta en marcha (una sola vez)
 

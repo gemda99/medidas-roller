@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessRepository, StoredDocument } from '../../data-access/repositories/business.repository';
 import { QuotationRepository } from '../../data-access/repositories/quotation.repository';
-import { BusinessSettings, conditionLines, EMPTY_BUSINESS } from '../../domain/models/business';
+import { BusinessSettings, EMPTY_BUSINESS, textBlocks } from '../../domain/models/business';
 import { Quotation, STATUS_LABEL } from '../../domain/models/quotation';
 import { buildRows, footerHeight, ImageRow, paginate } from '../../domain/quote-image/quote-pages';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
@@ -126,7 +126,8 @@ export class QuoteImagePage implements OnInit, OnDestroy {
     const q = this.quote();
     if (!q) return [];
     const rows = buildRows(q.quotation_items);
-    const footer = footerHeight(conditionLines(this.business().conditions_text).length);
+    const b = this.business();
+    const footer = footerHeight(textBlocks(b.conditions_text), textBlocks(b.warranty_details_text));
     return paginate(rows, footer);
   });
   readonly missingBusiness = computed(() => !this.business().business_name && !this.logo());

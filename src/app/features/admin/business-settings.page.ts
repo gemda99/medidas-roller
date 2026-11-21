@@ -95,8 +95,9 @@ export class BusinessSettingsPage implements OnInit {
       title: 'Condiciones',
       fields: [
         { key: 'delivery_time_text', label: 'Tiempo de entrega', hint: 'Ej.: 3 a 5 días hábiles' },
-        { key: 'warranty_text', label: 'Garantía', hint: 'Ej.: 5 años' },
-        { key: 'conditions_text', label: 'Condiciones generales (una por línea)', type: 'area' },
+        { key: 'warranty_text', label: 'Garantía (resumen)', hint: 'Ej.: 5 años. Va en el encabezado de la imagen.' },
+        { key: 'conditions_text', label: 'Condiciones generales', type: 'area', hint: 'Una por línea. Una línea que termina en «:» se muestra como subtítulo.' },
+        { key: 'warranty_details_text', label: 'Garantía detallada', type: 'area', hint: 'Cobertura y casos no cubiertos, una por línea. Ej.: «Casos no cubiertos:» como subtítulo.' },
         { key: 'thank_you_text', label: 'Mensaje de cierre' },
       ],
     },

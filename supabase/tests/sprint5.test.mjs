@@ -66,3 +66,12 @@ test('logo: solo el admin sube a branding', async () => {
   await as(ADMIN, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ('branding', 'logo.png')`));
   assert.equal((await as(MEDIDOR, (tx) => tx.query(`select 1 from storage.objects where bucket_id = 'branding'`))).rows.length, 1);
 });
+
+test('garantía detallada: la edita el admin y queda en la copia al emitir', async () => {
+  const { db, as } = await setupDb();
+  await as(ADMIN, (tx) => tx.query(`update public.business_settings set warranty_details_text = 'Garantía:\nCubre 5 años'`));
+  const row = (await as(MEDIDOR, (tx) => tx.query(`select warranty_details_text from public.business_settings`))).rows[0];
+  assert.equal(row.warranty_details_text, 'Garantía:\nCubre 5 años');
+  await rejects(as(ADMIN, (tx) => tx.query(`update public.business_settings set warranty_details_text = repeat('x', 3001)`)), /check|violates/i);
+  await db.close();
+});
