@@ -161,7 +161,7 @@ const M = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFrac
   styles: `
     :host { display: block; }
     .sheet { width: 1080px; box-sizing: border-box; padding: 52px 60px 0; background: #fff; color: #142033;
-      font: 400 23px/1.4 Inter, 'Segoe UI', Arial, sans-serif; font-variant-numeric: tabular-nums;
+      font: 400 23px/1.4 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
       --tint: color-mix(in srgb, var(--accent) 7%, #fff); --line: #e3e8ef; --muted: #66768c; }
     .head { display: flex; justify-content: space-between; align-items: center; gap: 32px; min-height: 96px; }
     .logo { max-height: 112px; max-width: 440px; object-fit: contain; display: block; }
@@ -207,7 +207,7 @@ const M = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFrac
     .units strong { font-size: 26px; color: #142033; }
     .totals { background: var(--tint); border-radius: 14px; padding: 18px 24px; }
     .t { display: flex; justify-content: space-between; padding: 5px 0; font-size: 22px; }
-    .grand { display: flex; justify-content: space-between; margin-top: 12px; padding: 16px 20px; border-radius: 12px;
+    .grand { display: flex; justify-content: space-between; gap: 16px; white-space: nowrap; margin-top: 12px; padding: 16px 20px; border-radius: 12px;
       background: var(--accent); color: #fff; font: 800 32px/1 Inter, sans-serif; }
     .note { text-align: right; color: var(--muted); font-size: 18px; margin-top: 8px; }
     .notes { margin: 22px 0 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--tint); font-size: 20px; white-space: pre-line; }

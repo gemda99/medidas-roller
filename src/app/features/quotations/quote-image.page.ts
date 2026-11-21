@@ -219,7 +219,11 @@ export class QuoteImagePage implements OnInit, OnDestroy {
     this.error.set(null);
     try {
       this.appRef.tick();
-      await document.fonts?.ready;
+      // La letra Inter va incluida en la app (no desde Google): se fuerza su carga antes de dibujar.
+      if (document.fonts) {
+        await Promise.all(['400', '500', '600', '700', '800'].map((w) => document.fonts.load(`${w} 24px Inter`, 'Cotización Ñ $0')));
+        await document.fonts.ready;
+      }
       const { domToBlob } = await import('modern-screenshot');
       const blobs: Blob[] = [];
       for (const ref of this.captures()) {
