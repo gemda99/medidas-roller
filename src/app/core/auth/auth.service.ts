@@ -39,11 +39,19 @@ export class AuthService {
   async signIn(email: string, password: string): Promise<void> {
     const { data, error } = await this.supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) throw error;
-    await this.applySession(data.session);
-    if (!this._profile()?.active) {
+    const profileError = await this.applySession(data.session);
+    const profile = this._profile();
+    if (!profile || !profile.active) {
       await this.supabase.auth.signOut();
       this._session.set(null);
-      throw { message: 'Tu usuario está desactivado. Habla con el administrador.', code: 'P0001' };
+      this._profile.set(null);
+      if (profileError) throw profileError;
+      throw {
+        code: 'P0001',
+        message: profile
+          ? 'Tu usuario está desactivado. Habla con el administrador.'
+          : 'Tu usuario no tiene perfil en la app. Habla con el administrador.',
+      };
     }
   }
 
@@ -64,18 +72,20 @@ export class AuthService {
     if (error) throw error;
   }
 
-  private async applySession(session: Session | null): Promise<void> {
+  /** Devuelve el error de lectura del perfil, si lo hubo, para no confundirlo con "desactivado". */
+  private async applySession(session: Session | null): Promise<unknown> {
     this._session.set(session);
     if (!session) {
       this._profile.set(null);
-      return;
+      return null;
     }
-    if (this._profile()?.id === session.user.id) return;
+    if (this._profile()?.id === session.user.id) return null;
     const { data, error } = await this.supabase
       .from('profiles')
       .select('id, full_name, role, active')
       .eq('id', session.user.id)
       .maybeSingle();
     this._profile.set(error || !data ? null : (data as Profile));
+    return error;
   }
 }
