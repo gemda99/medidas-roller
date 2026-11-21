@@ -72,6 +72,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
       },
       {
+        path: 'rectificaciones/:id/cotizaciones/nueva',
+        title: 'Nueva cotización · Medidas Roller',
+        loadComponent: () => import('./features/quotations/quotation-editor.page').then((m) => m.QuotationEditorPage),
+      },
+      {
+        path: 'cotizaciones/:qid',
+        title: 'Cotización · Medidas Roller',
+        loadComponent: () => import('./features/quotations/quotation-editor.page').then((m) => m.QuotationEditorPage),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/admin-layout').then((m) => m.AdminLayout),

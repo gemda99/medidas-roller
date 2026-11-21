@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogRepository } from '../../data-access/repositories/catalog.repository';
 import { RectificationRepository } from '../../data-access/repositories/rectification.repository';
+import { QuotationRepository } from '../../data-access/repositories/quotation.repository';
 import { Catalog, Product } from '../../domain/models/catalog';
 import { Rectification } from '../../domain/models/rectification';
 import { RectificationDetailPage } from './rectification-detail.page';
@@ -55,6 +56,7 @@ describe('RectificationDetailPage', () => {
         provideRouter([]),
         { provide: CatalogRepository, useValue: { load: () => Promise.resolve(catalog) } },
         { provide: RectificationRepository, useValue: { get: () => Promise.resolve(structuredClone(rect)) } },
+        { provide: QuotationRepository, useValue: { listByRectification: () => Promise.resolve([{ id: 'q1', number: 'COT-2026-0001', rectification_id: 'R', status: 'borrador', total_final: 246425, created_at: '2026-11-21', issued_at: null }]) } },
         { provide: AuthService, useValue: { isAdmin: signal(false) } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'R' }) } } },
       ],
@@ -74,5 +76,7 @@ describe('RectificationDetailPage', () => {
     expect(cards[1].textContent).toContain('Adelante · SE');
     expect(cards[1].textContent).toContain('Caída interna');
     expect(el.querySelector('a.add-card')?.textContent).toContain('Agregar cortina');
+    expect(el.textContent).toContain('COT-2026-0001');
+    expect(el.textContent).toContain('$246.425');
   });
 });

@@ -7,6 +7,9 @@ import {
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogRepository } from '../../data-access/repositories/catalog.repository';
 import { RectificationRepository } from '../../data-access/repositories/rectification.repository';
+import { QuotationRepository } from '../../data-access/repositories/quotation.repository';
+import { QuotationSummary, STATUS_LABEL } from '../../domain/models/quotation';
+import { formatClp } from '../../shared/format';
 import { Catalog } from '../../domain/models/catalog';
 import { Curtain, Location, Rectification, RectificationGeneral } from '../../domain/models/rectification';
 import { completionIssues, curtainCard, CurtainCard, curtainSummary, duplicatePayload } from '../../domain/rectification/curtain-rules';
@@ -41,6 +44,10 @@ export class RectificationDetailPage implements OnInit {
   readonly id = this.route.snapshot.paramMap.get('id')!;
   readonly fmt = formatDate;
   readonly quick = QUICK_LOCATIONS;
+  readonly clp = formatClp;
+  readonly statusLabel = STATUS_LABEL;
+  private readonly quotesRepo = inject(QuotationRepository);
+  readonly quotes = signal<QuotationSummary[]>([]);
 
   readonly rect = signal<Rectification | null>(null);
   readonly catalog = signal<Catalog | null>(null);
@@ -94,8 +101,9 @@ export class RectificationDetailPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [r, c] = await Promise.all([this.repo.get(this.id), this.catalogRepo.load()]);
+      const [r, c, q] = await Promise.all([this.repo.get(this.id), this.catalogRepo.load(), this.quotesRepo.listByRectification(this.id)]);
       this.catalog.set(c);
+      this.quotes.set(q);
       this.applyRect(r, true);
     } catch (e) {
       this.error.set(toUserMessage(e));

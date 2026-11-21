@@ -118,6 +118,29 @@
     </section>
     }
 
+    <section class="card stack">
+      <div class="spread">
+        <h2>Cotizaciones</h2>
+        @if (curtainCount() > 0) {
+          <a class="btn btn-primary" [routerLink]="['/rectificaciones', r.id, 'cotizaciones', 'nueva']">Cotizar</a>
+        }
+      </div>
+      @if (quotes().length === 0) {
+        <p class="muted" style="margin:0">{{ curtainCount() ? 'Aún no hay cotizaciones.' : 'Agrega cortinas para poder cotizar.' }}</p>
+      } @else {
+        <ul class="list">
+          @for (q of quotes(); track q.id) {
+            <li>
+              <a class="list-item" [routerLink]="['/cotizaciones', q.id]">
+                <span class="stack" style="gap:2px"><strong>{{ q.number }}</strong><span class="muted">{{ fmt(q.created_at) }}</span></span>
+                <span class="row" style="flex-wrap:nowrap"><strong>{{ clp(q.total_final) }}</strong><span class="chip">{{ statusLabel[q.status] }}</span></span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
     @if (completeIssues().length) {
       <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
     }

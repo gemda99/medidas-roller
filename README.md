@@ -14,11 +14,12 @@ Angular 22 (standalone, signals, zoneless) · Supabase (Auth, PostgreSQL con RLS
 |---|---|
 | 1 · Fundamentos y clientes | Probado por Gabriel con Supabase real. Falta HU-11 (GitHub + Vercel). |
 | 2 · Rectificación en terreno | Probado por Gabriel con Supabase real (incluidos ajustes: cuadros, orden del doble, caída por tela, VC). |
-| 3 · Fotos y tarifarios | Código y pruebas automáticas en verde; falta prueba en Supabase real y en teléfono. |
+| 3 · Fotos y tarifarios | Probado por Gabriel con Supabase real. |
+| 4 · Motor y cotización | Código y pruebas automáticas en verde; falta prueba en Supabase real. |
 
 ### Aplicar migraciones nuevas en Supabase
 
-Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`.
+Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`, `aplicar_sprint4.sql`.
 
 ## Puesta en marcha (una sola vez)
 
@@ -54,7 +55,7 @@ npm start                 # http://localhost:4200
 
 ```bash
 npm test -- --watch=false   # unitarias (Vitest): validaciones, errores, guards, login, lista de clientes
-npm run test:db             # migraciones + RLS en PostgreSQL embebido (PGlite), sin Supabase (37 pruebas)
+npm run test:db             # migraciones + RLS en PostgreSQL embebido (PGlite), sin Supabase (45 pruebas)
 ```
 
 ## Estructura
@@ -81,4 +82,6 @@ supabase/
 - **Permisos explícitos (`GRANT`) en cada migración**: los proyectos nuevos de Supabase no exponen solas las tablas a la API. Las pruebas de base de datos ya no dan permisos globales, así detectan si falta alguno.
 - **Cortina = 1 o 2 telas (`curtain_components`)** y guardado atómico con `save_curtain`: valida en la base que un doble tenga fondo y frente.
 - **Borrador local** (`DraftStore`): lo escrito se guarda en el teléfono mientras se edita y se borra al guardar.
+- **Motor de cotización** (`domain/pricing/pricing-engine.ts`): TypeScript puro y determinista, 20 pruebas (caso del Excel: $246.425). La base valida coherencia de montos, límites de descuento del medidor y bloquea cotizaciones emitidas.
+- **Snapshot por cotización**: copia de precios, catálogo y cliente dentro de la cotización; un borrador se recalcula con su copia salvo que se pida «Actualizar al tarifario vigente».
 - Presupuesto de bundle inicial subido a 600 kB (aviso): `supabase-js` ocupa la mayor parte (~124 kB comprimido en total).
