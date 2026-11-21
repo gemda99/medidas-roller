@@ -1,0 +1,41 @@
+{
+  "name": "medidas-roller",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "env": "node scripts/set-env.mjs",
+    "prestart": "npm run env",
+    "start": "ng serve",
+    "prebuild": "npm run env",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "pretest": "npm run env",
+    "test": "ng test",
+    "test:db": "node --test supabase/tests/rls.test.mjs",
+    "test:all": "npm run test -- --watch=false && npm run test:db"
+  },
+  "private": true,
+  "packageManager": "npm@10.9.9",
+  "dependencies": {
+    "@angular/common": "^22.3.0",
+    "@angular/compiler": "^22.3.0",
+    "@angular/core": "^22.3.0",
+    "@angular/forms": "^22.3.0",
+    "@angular/platform-browser": "^22.3.0",
+    "@angular/router": "^22.3.0",
+    "@lucide/angular": "1.77.0",
+    "@supabase/supabase-js": "2.119.2",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.3.0",
+    "@angular/cli": "^22.3.0",
+    "@angular/compiler-cli": "^22.3.0",
+    "@electric-sql/pglite": "0.5.17",
+    "jsdom": "^31.0.0",
+    "prettier": "^3.8.1",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.0"
+  }
+}

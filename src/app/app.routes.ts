@@ -1,0 +1,57 @@
+import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards/auth.guards';
+import { Shell } from './core/layout/shell';
+
+export const routes: Routes = [
+  {
+    path: 'ingresar',
+    canActivate: [guestGuard],
+    title: 'Ingresar · Medidas Roller',
+    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+  },
+  {
+    path: 'recuperar',
+    canActivate: [guestGuard],
+    title: 'Recuperar contraseña · Medidas Roller',
+    loadComponent: () => import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+  },
+  {
+    // Destino del enlace del correo de recuperación (hay sesión temporal, sin guestGuard).
+    path: 'nueva-clave',
+    title: 'Nueva contraseña · Medidas Roller',
+    loadComponent: () => import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+  },
+  {
+    path: '',
+    component: Shell,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        title: 'Inicio · Medidas Roller',
+        loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
+        path: 'clientes',
+        title: 'Clientes · Medidas Roller',
+        loadComponent: () => import('./features/customers/customer-list.page').then((m) => m.CustomerListPage),
+      },
+      {
+        path: 'clientes/nuevo',
+        title: 'Nuevo cliente · Medidas Roller',
+        loadComponent: () => import('./features/customers/customer-form.page').then((m) => m.CustomerFormPage),
+      },
+      {
+        path: 'clientes/:id',
+        title: 'Cliente · Medidas Roller',
+        loadComponent: () => import('./features/customers/customer-detail.page').then((m) => m.CustomerDetailPage),
+      },
+      {
+        path: 'clientes/:id/editar',
+        title: 'Editar cliente · Medidas Roller',
+        loadComponent: () => import('./features/customers/customer-form.page').then((m) => m.CustomerFormPage),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
+];
