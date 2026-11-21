@@ -8,11 +8,11 @@ import {
   CustomerWithAddresses,
 } from '../../domain/models/customer';
 
-const CUSTOMER_COLUMNS = 'id, full_name, phone, email, notes, created_at';
+const CUSTOMER_COLUMNS = 'id, full_name, phone, rut, email, notes, created_at';
 const ADDRESS_COLUMNS = 'id, customer_id, address_line, comuna, reference, is_default';
 
 /**
- * Arma el filtro `or` de PostgREST para buscar por nombre o por teléfono.
+ * Arma el filtro `or` de PostgREST para buscar por nombre, teléfono o RUT.
  * Deja solo letras, dígitos y espacios: así no se puede inyectar sintaxis del filtro
  * (comas, paréntesis, comillas) ni comodines de LIKE.
  */
@@ -22,6 +22,14 @@ export function buildSearchFilter(term: string): string | null {
   const parts = [`full_name.ilike."%${clean}%"`];
   const digits = clean.replace(/\D/g, '');
   if (digits.length >= 3) parts.push(`phone_digits.like."%${digits}%"`);
+  // RUT: «12.345.678-5», «12345678-5», «12345678» o «123456785». Se busca por el comienzo del RUT guardado.
+  const hasDash = term.includes('-');
+  const rutDigits = (hasDash ? term.split('-')[0] : term).replace(/\D/g, '');
+  if (rutDigits.length >= 6 && rutDigits.length <= 9) {
+    parts.push(`rut.like."${rutDigits}%"`);
+    // Sin guion puede venir con el dígito verificador pegado: también se prueba sin el último dígito.
+    if (!hasDash && rutDigits.length >= 8) parts.push(`rut.like."${rutDigits.slice(0, -1)}-%"`);
+  }
   return parts.join(',');
 }
 
@@ -62,6 +70,7 @@ export class CustomerRepository {
         p_address_line: address.address_line,
         p_comuna: address.comuna,
         p_reference: address.reference,
+        p_rut: input.rut,
       })
       .single();
     if (error) throw error;

@@ -4,6 +4,7 @@ import { Quotation } from '../../domain/models/quotation';
 import { QuoteLine } from '../../domain/pricing/pricing-engine';
 import { ImageRow } from '../../domain/quote-image/quote-pages';
 import { formatClp } from '../../shared/format';
+import { formatRut } from '../../shared/validation/rut';
 
 const M = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -45,6 +46,7 @@ const M = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFrac
           <div class="box">
             <div class="cap">Datos del cliente</div>
             <div class="kv"><span>Cliente</span><strong>{{ q.customer_snapshot.full_name }}</strong></div>
+            @if (q.customer_snapshot.rut) { <div class="kv"><span>RUT</span><span>{{ rut(q.customer_snapshot.rut) }}</span></div> }
             <div class="kv"><span>Dirección</span><span>{{ address() }}</span></div>
             @if (q.customer_snapshot.phone) { <div class="kv"><span>Teléfono</span><span>{{ q.customer_snapshot.phone }}</span></div> }
             @if (q.customer_snapshot.executive_name) { <div class="kv"><span>Ejecutivo</span><span>{{ q.customer_snapshot.executive_name }}</span></div> }
@@ -267,6 +269,9 @@ export class QuoteImagePageComponent {
   }
   m2(a: number | null): string {
     return a ? M.format(a) : '';
+  }
+  rut(r: string): string {
+    return formatRut(r);
   }
   clp(n: number): string {
     return formatClp(n);

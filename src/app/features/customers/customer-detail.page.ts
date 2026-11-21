@@ -1,4 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
+import { RutPipe } from '../../shared/pipes/rut.pipe';
 import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -18,7 +19,7 @@ type Pending = { kind: 'address'; address: CustomerAddress } | { kind: 'customer
 
 @Component({
   selector: 'app-customer-detail-page',
-  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, ConfirmDialog, LucidePencil, LucidePhone, LucidePlus, LucideStar, LucideTrash2],
+  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, ConfirmDialog, LucidePencil, LucidePhone, LucidePlus, LucideStar, LucideTrash2, RutPipe],
   templateUrl: './customer-detail.page.html',
 })
 export class CustomerDetailPage implements OnInit {

@@ -72,9 +72,9 @@ export const routes: Routes = [
         loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
       },
       {
-        path: 'rectificaciones/:id/confeccion',
-        title: 'Confección · Medidas Roller',
-        loadComponent: () => import('./features/rectifications/confection.page').then((m) => m.ConfectionPage),
+        path: 'rectificaciones/:id/documentos',
+        title: 'Documentos · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/documents.page').then((m) => m.DocumentsPage),
       },
       {
         path: 'rectificaciones/:id/cotizaciones/nueva',

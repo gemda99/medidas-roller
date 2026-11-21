@@ -2,7 +2,7 @@ import { ConfectionCurtain } from './confection-engine';
 import { confectionPages, confectionRows, detailLines } from './confection-pages';
 
 const c = (i: number, loc: string, extra: Partial<ConfectionCurtain> = {}): ConfectionCurtain => ({
-  index: i, location_name: loc, product_code: 'BO', product_name: 'Blackout', label: null, external: false, missing_rules: false,
+  curtain_id: `c${i}`, index: i, location_name: loc, product_code: 'BO', product_name: 'Blackout', label: null, external: false, missing_rules: false,
   layers: [{ label: '', product_code: 'BO', color_name: null, width_cm: 170, height_cm: 220, fabric_w: 166, fabric_h: 240, tube: 166.5, bottom: 166.5, roller: null, fall: null, motorized: false }],
   cenefa: null, chain: null, installation: null, extras: [], notes: null, ...extra,
 });

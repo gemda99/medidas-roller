@@ -67,7 +67,12 @@ export interface RectificationSummary extends RectificationGeneral {
   status: RectificationStatus;
   created_at: string;
   updated_at: string;
-  customers: { full_name: string; phone: string } | null;
+  /** Firma de conformidad del cliente (al completar). */
+  signature_path: string | null;
+  signed_name: string | null;
+  signed_rut: string | null;
+  signed_at: string | null;
+  customers: { full_name: string; phone: string; rut?: string | null } | null;
 }
 
 export interface Rectification extends RectificationSummary {

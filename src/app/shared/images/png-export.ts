@@ -76,3 +76,22 @@ export function watchZoom(el: HTMLElement | undefined, set: (z: number) => void)
   ro.observe(el);
   return ro;
 }
+
+/** Junta varios archivos en un ZIP (sin recomprimir los PNG, que ya vienen comprimidos). */
+export async function zipFiles(entries: { name: string; blob: Blob }[]): Promise<Blob> {
+  const { zipSync } = await import('fflate');
+  const input: Record<string, [Uint8Array, { level: 0 }]> = {};
+  for (const e of entries) input[e.name] = [new Uint8Array(await e.blob.arrayBuffer()), { level: 0 }];
+  const out = zipSync(input);
+  return new Blob([out as BlobPart], { type: 'application/zip' });
+}
+
+/** Nombre de archivo sin tildes ni espacios: «Pamela Méndez» → «Pamela-Mendez». */
+export function safeName(text: string, fallback = 'archivo'): string {
+  const s = text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return s || fallback;
+}

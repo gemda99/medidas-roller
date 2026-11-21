@@ -33,3 +33,17 @@ export async function compressImage(file: Blob): Promise<CompressedImage> {
   if (!blob) throw new Error('No se pudo procesar la imagen.');
   return { blob, width, height };
 }
+
+/** Miniatura como data URL JPEG (para incrustar fotos en imágenes generadas sin problemas de origen). */
+export async function thumbnailDataUrl(file: Blob, max = 520, quality = 0.72): Promise<string> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const { width, height } = fitWithin(bitmap.width, bitmap.height, max);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('No se pudo procesar la imagen.');
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  return canvas.toDataURL('image/jpeg', quality);
+}

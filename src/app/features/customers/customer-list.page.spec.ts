@@ -5,7 +5,7 @@ import { Customer } from '../../domain/models/customer';
 import { CustomerListPage } from './customer-list.page';
 
 const sample: Customer[] = [
-  { id: '1', full_name: 'Cliente Uno', phone: '+56 9 1111 1111', email: null, notes: null, created_at: '' },
+  { id: '1', full_name: 'Cliente Uno', phone: '+56 9 1111 1111', rut: null, email: null, notes: null, created_at: '' },
 ];
 
 async function render(search: (t: string) => Promise<Customer[]>) {

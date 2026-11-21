@@ -6,6 +6,7 @@ export type QuotationStatus = 'borrador' | 'emitida' | 'aceptada' | 'rechazada';
 export interface CustomerSnapshot {
   full_name: string;
   phone: string;
+  rut?: string | null;
   address_line: string;
   comuna: string;
   address_reference: string | null;

@@ -26,7 +26,7 @@ const curtain = (id: string): Curtain => ({
 const rect: Rectification = {
   id: 'R', customer_id: 'C', executive_id: 'E', executive_name: 'Yo', address_line: 'Calle 1', comuna: 'La Reina',
   address_reference: null, visit_date: '2026-11-21', installation_date: null, observations: null,
-  explained_light_entry: false, explained_fabric_position: false, explained_side_measure: false, status: 'borrador',
+  explained_light_entry: false, explained_fabric_position: false, explained_side_measure: false, status: 'borrador', signature_path: null, signed_name: null, signed_rut: null, signed_at: null,
   created_at: '', updated_at: '', customers: { full_name: 'Cliente ejemplo', phone: '+56 9 0000 0000' },
   locations: [{ id: 'L', rectification_id: 'R', name: 'Living', notes: null, sort_order: 0, curtains: [curtain('a'), curtain('b')] }],
 };

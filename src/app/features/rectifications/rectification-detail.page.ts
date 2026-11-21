@@ -14,6 +14,9 @@ import { Catalog } from '../../domain/models/catalog';
 import { Curtain, Location, Rectification, RectificationGeneral } from '../../domain/models/rectification';
 import { completionIssues, curtainCard, CurtainCard, curtainSummary, duplicatePayload } from '../../domain/rectification/curtain-rules';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
+import { SignaturePad } from '../../shared/components/signature-pad';
+import { RutPipe } from '../../shared/pipes/rut.pipe';
+import { formatRut, isValidRut, normalizeRut } from '../../shared/validation/rut';
 import { DraftStore } from '../../shared/drafts/draft-store';
 import { toUserMessage } from '../../shared/errors';
 import { formatDate } from '../../shared/format';
@@ -29,7 +32,7 @@ type Pending =
 
 @Component({
   selector: 'app-rectification-detail-page',
-  imports: [ReactiveFormsModule, RouterLink, ConfirmDialog, LucidePlus, LucidePencil, LucideTrash2, LucideArrowUp, LucideArrowDown, LucideCopy, LucideCamera],
+  imports: [ReactiveFormsModule, RouterLink, ConfirmDialog, SignaturePad, RutPipe, LucidePlus, LucidePencil, LucideTrash2, LucideArrowUp, LucideArrowDown, LucideCopy, LucideCamera],
   templateUrl: './rectification-detail.page.html',
   styleUrl: './rectification-detail.page.css',
 })
@@ -67,6 +70,26 @@ export class RectificationDetailPage implements OnInit {
   readonly canDelete = computed(() => this.auth.isAdmin() || this.rect()?.status === 'borrador');
 
   private readonly confirm = viewChild.required(ConfirmDialog);
+  private readonly reopenDlg = viewChild.required<ConfirmDialog>('reopenDlg');
+  private readonly pad = viewChild<SignaturePad>('pad');
+
+  // ---- Firma de conformidad ----
+  readonly signing = signal(false);
+  readonly signName = signal('');
+  readonly signRut = signal('');
+  readonly hasSignature = signal(false);
+  readonly signatureUrl = signal<string | null>(null);
+  readonly signRutBad = computed(() => !!this.signRut().trim() && !isValidRut(this.signRut()));
+  readonly canSign = computed(() => this.hasSignature() && this.signName().trim().length >= 2 && !this.signRutBad());
+  readonly explained = computed(() => {
+    const r = this.rect();
+    if (!r) return [];
+    return [
+      r.explained_light_entry ? 'la entrada de luz' : null,
+      r.explained_fabric_position ? 'la posición de las telas' : null,
+      r.explained_side_measure ? 'la medida de los costados' : null,
+    ].filter((x): x is string => !!x);
+  });
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
   private get draftKey() { return `rect:${this.id}:general`; }
 
@@ -113,7 +136,12 @@ export class RectificationDetailPage implements OnInit {
   }
 
   private applyRect(r: Rectification, resetForm: boolean): void {
+    const prevSig = this.rect()?.signature_path ?? null;
     this.rect.set(r);
+    if (r.signature_path !== prevSig || (r.signature_path && !this.signatureUrl())) {
+      this.signatureUrl.set(null);
+      if (r.signature_path) void this.repo.signatureDataUrl(r.signature_path).then((u) => this.signatureUrl.set(u));
+    }
     if (r.status === 'completa') this.general.disable({ emitEvent: false });
     else this.general.enable({ emitEvent: false });
     if (!resetForm) return;
@@ -225,11 +253,37 @@ export class RectificationDetailPage implements OnInit {
     const issues = completionIssues(r.locations);
     this.completeIssues.set(issues);
     if (issues.length) return;
-    await this.run(() => this.repo.setStatus(r.id, 'completa'));
+    this.signName.set(r.customers?.full_name ?? '');
+    this.signRut.set(r.customers?.rut ? formatRut(r.customers.rut) : '');
+    this.hasSignature.set(false);
+    this.signing.set(true);
+  }
+
+  async signAndComplete(): Promise<void> {
+    const pad = this.pad();
+    if (!pad || !this.canSign()) return;
+    const blob = await pad.toBlob();
+    const rut = this.signRut().trim() ? normalizeRut(this.signRut()) : null;
+    await this.run(() => this.repo.sign(this.id, blob, this.signName().trim(), rut));
+    if (!this.error()) this.signing.set(false);
+  }
+
+  async completeWithoutSignature(): Promise<void> {
+    await this.run(() => this.repo.setStatus(this.id, 'completa'));
+    if (!this.error()) this.signing.set(false);
+  }
+
+  askReopen(): void {
+    if (this.rect()?.signed_at) this.reopenDlg().open();
+    else void this.reopen();
   }
 
   async reopen(): Promise<void> {
     await this.run(() => this.repo.setStatus(this.id, 'borrador'));
+  }
+
+  fmtDateTime(iso: string): string {
+    return new Date(iso).toLocaleString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   // ---- Borrar con confirmación ----

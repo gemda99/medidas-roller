@@ -14,4 +14,11 @@ describe('buildSearchFilter', () => {
     const f = buildSearchFilter('a,b)"or(1=1%_');
     expect(f).toBe('full_name.ilike."%a b or 1 1%"');
   });
+  it('busca por RUT con puntos y guion, o con el dígito pegado', () => {
+    expect(buildSearchFilter('12.345.678-5')).toContain('rut.like."12345678%"');
+    const f = buildSearchFilter('123456785')!;
+    expect(f).toContain('rut.like."123456785%"');
+    expect(f).toContain('rut.like."12345678-%"');
+    expect(buildSearchFilter('María')).not.toContain('rut');
+  });
 });

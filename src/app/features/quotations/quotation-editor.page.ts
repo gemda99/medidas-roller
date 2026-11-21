@@ -277,6 +277,7 @@ export class QuotationEditorPage implements OnInit {
     return {
       full_name: r.customers?.full_name ?? '',
       phone: r.customers?.phone ?? '',
+      rut: r.customers?.rut ?? null,
       address_line: r.address_line,
       comuna: r.comuna,
       address_reference: r.address_reference,

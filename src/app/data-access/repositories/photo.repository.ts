@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { SUPABASE } from '../supabase/supabase.client';
+import { thumbnailDataUrl } from '../../shared/images/compress';
 
 export const PHOTO_BUCKET = 'curtain-photos';
 
@@ -35,6 +36,41 @@ export class PhotoRepository {
     if (signed.error) throw signed.error;
     const byPath = new Map((signed.data ?? []).map((s) => [s.path, s.signedUrl]));
     return rows.map((r) => ({ ...r, url: byPath.get(r.storage_path) ?? null }));
+  }
+
+  /**
+   * Miniaturas (data URL) de las fotos de varias cortinas, agrupadas por cortina, para la guía del instalador.
+   * Se descargan de a 4 para no saturar la conexión del teléfono. Una foto que falla se omite.
+   */
+  async thumbnailsFor(curtainIds: string[], max = 520): Promise<Map<string, string[]>> {
+    const out = new Map<string, string[]>();
+    if (!curtainIds.length) return out;
+    const { data, error } = await this.db
+      .from('curtain_photos')
+      .select('curtain_id, storage_path')
+      .in('curtain_id', curtainIds)
+      .order('created_at');
+    if (error) throw error;
+    const rows = (data ?? []) as { curtain_id: string; storage_path: string }[];
+    const results: (string | null)[] = new Array(rows.length).fill(null);
+    for (let i = 0; i < rows.length; i += 4) {
+      await Promise.all(
+        rows.slice(i, i + 4).map(async (r, k) => {
+          const dl = await this.db.storage.from(PHOTO_BUCKET).download(r.storage_path);
+          if (dl.error || !dl.data) return;
+          try {
+            results[i + k] = await thumbnailDataUrl(dl.data, max);
+          } catch {
+            /* foto dañada: se omite */
+          }
+        }),
+      );
+    }
+    rows.forEach((r, i) => {
+      const url = results[i];
+      if (url) out.set(r.curtain_id, [...(out.get(r.curtain_id) ?? []), url]);
+    });
+    return out;
   }
 
   /** Sube el archivo y lo registra. Si el registro falla, borra el archivo para no dejar huérfanos. */

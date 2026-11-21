@@ -15,7 +15,7 @@ export function toUserMessage(error: unknown): string {
   if (msg.includes('same password')) return 'La nueva contraseña debe ser distinta a la anterior.';
   if (e.code === '42501' || msg.includes('row-level security') || msg.includes('permission denied'))
     return 'Tu usuario no tiene permiso para esta acción.';
-  if (e.code === '23505') return 'Ese dato ya existe.';
+  if (e.code === '23505') return msg.includes('rut') ? 'Ya existe un cliente con ese RUT. Búscalo en Clientes.' : 'Ese dato ya existe.';
   if (e.code === '23514') return 'Hay un dato con formato inválido. Revisa el formulario.';
   if (e.code === '23503') return 'No se puede completar porque hay datos relacionados.';
   if (e.code === 'P0001' && e.message) return e.message;

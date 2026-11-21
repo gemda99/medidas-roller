@@ -5,6 +5,7 @@ import { CustomerRepository } from '../../data-access/repositories/customer.repo
 import { COMUNAS_RM } from '../../domain/comunas';
 import { toUserMessage } from '../../shared/errors';
 import { emptyToNull, normalizePhone, phoneValidator } from '../../shared/validation/contact';
+import { formatRut, isValidRut, normalizeRut, rutValidator } from '../../shared/validation/rut';
 
 /** Crear o editar un cliente. Al crear, pide también la primera dirección (queda como principal). */
 @Component({
@@ -32,6 +33,12 @@ import { emptyToNull, normalizePhone, phoneValidator } from '../../shared/valida
               <input id="phone" type="tel" inputmode="tel" formControlName="phone" autocomplete="tel"
                      placeholder="+56 9 1234 5678" [class.invalid]="bad('phone')" />
               @if (bad('phone')) { <span class="error">Escribe un teléfono válido, por ejemplo +56 9 1234 5678.</span> }
+            </div>
+            <div class="field">
+              <label for="rut">RUT <span class="muted">(opcional)</span></label>
+              <input id="rut" formControlName="rut" autocomplete="off" inputmode="text" placeholder="12.345.678-5"
+                     (blur)="tidyRut()" [class.invalid]="bad('rut')" />
+              @if (bad('rut')) { <span class="error">El RUT no es válido. Revisa el número y el dígito verificador.</span> }
             </div>
             <div class="field">
               <label for="email">Correo <span class="muted">(opcional)</span></label>
@@ -91,6 +98,7 @@ export class CustomerFormPage implements OnInit {
   readonly form = this.fb.group({
     full_name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     phone: ['', [Validators.required, phoneValidator]],
+    rut: ['', [rutValidator]],
     email: ['', [Validators.email]],
     notes: ['', [Validators.maxLength(1000)]],
     address: this.fb.group({
@@ -109,13 +117,19 @@ export class CustomerFormPage implements OnInit {
     this.form.controls.address.disable(); // al editar, las direcciones se manejan en la ficha
     try {
       const c = await this.repo.getById(this.id);
-      this.form.patchValue({ full_name: c.full_name, phone: c.phone, email: c.email ?? '', notes: c.notes ?? '' });
+      this.form.patchValue({ full_name: c.full_name, phone: c.phone, rut: c.rut ? formatRut(c.rut) : '', email: c.email ?? '', notes: c.notes ?? '' });
     } catch (e) {
       this.loadError.set(toUserMessage(e));
     }
   }
 
-  bad(name: 'full_name' | 'phone' | 'email'): boolean {
+  /** Al salir del campo, muestra el RUT con puntos y guion si es válido. */
+  tidyRut(): void {
+    const c = this.form.controls.rut;
+    if (isValidRut(c.value)) c.setValue(formatRut(c.value));
+  }
+
+  bad(name: 'full_name' | 'phone' | 'rut' | 'email'): boolean {
     const c = this.form.controls[name];
     return c.invalid && (c.touched || this.submitted());
   }
@@ -136,6 +150,7 @@ export class CustomerFormPage implements OnInit {
     const customer = {
       full_name: v.full_name.trim(),
       phone: normalizePhone(v.phone),
+      rut: v.rut.trim() ? normalizeRut(v.rut) : null,
       email: emptyToNull(v.email),
       notes: emptyToNull(v.notes),
     };

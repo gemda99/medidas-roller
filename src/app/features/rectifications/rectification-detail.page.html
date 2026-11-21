@@ -143,11 +143,13 @@
 
     @if (curtainCount() > 0) {
       <section class="card stack">
-        <div class="spread">
-          <h2>Confección</h2>
-          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'confeccion']">Hoja para fábrica</a>
+        <h2>Documentos</h2>
+        <p class="muted" style="margin:0">Imágenes sin precios para la fábrica y el instalador, o todo en un ZIP.</p>
+        <div class="docs">
+          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'confeccion' }">Confección</a>
+          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'guia' }">Guía instalador</a>
+          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'zip' }">Todo (ZIP)</a>
         </div>
-        <p class="muted" style="margin:0">Imagen sin precios con medidas de tela, tubo y G polvo.</p>
       </section>
     }
 
@@ -155,11 +157,47 @@
       <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
     }
 
+    @if (r.status === 'completa' && r.signed_at) {
+      <section class="card stack signed">
+        <h2>Conformidad del cliente</h2>
+        @if (signatureUrl()) { <img [src]="signatureUrl()" alt="Firma del cliente" class="sig-img" /> }
+        <p style="margin:0">Firmado por <strong>{{ r.signed_name }}</strong>@if (r.signed_rut) { · RUT {{ r.signed_rut | rut }} } · {{ fmtDateTime(r.signed_at) }}</p>
+      </section>
+    }
+
+    @if (signing()) {
+      <section class="card stack" aria-labelledby="sign-title">
+        <h2 id="sign-title">Firma del cliente</h2>
+        <p class="muted" style="margin:0">El cliente confirma que revisó las {{ curtainCount() }} cortinas registradas: medidas, colores, ubicación y forma de instalación@if (explained().length) {, y que se le explicó {{ explained().join(', ') }}}.</p>
+        <div class="two">
+          <div class="field">
+            <label for="sname">Nombre de quien firma</label>
+            <input id="sname" [value]="signName()" (input)="signName.set($any($event.target).value)" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="srut">RUT <span class="muted">(opcional)</span></label>
+            <input id="srut" [value]="signRut()" (input)="signRut.set($any($event.target).value)" placeholder="12.345.678-5" autocomplete="off" [class.invalid]="signRutBad()" />
+            @if (signRutBad()) { <span class="error">El RUT no es válido.</span> }
+          </div>
+        </div>
+        <app-signature-pad #pad (changed)="hasSignature.set($event)" />
+        <button type="button" class="btn btn-primary btn-block" [disabled]="busy() || !canSign()" (click)="signAndComplete()">
+          {{ busy() ? 'Guardando…' : 'Firmar y completar' }}
+        </button>
+        <div class="two">
+          <button type="button" class="btn" [disabled]="busy()" (click)="completeWithoutSignature()">Completar sin firma</button>
+          <button type="button" class="btn" [disabled]="busy()" (click)="signing.set(false)">Cancelar</button>
+        </div>
+      </section>
+    }
+
     <div class="stack">
       @if (r.status === 'borrador') {
-        <button type="button" class="btn btn-primary btn-block" [disabled]="busy()" (click)="complete()">Marcar como completa · {{ curtainCount() }} cortinas</button>
+        @if (!signing()) {
+          <button type="button" class="btn btn-primary btn-block" [disabled]="busy()" (click)="complete()">Completar y firmar · {{ curtainCount() }} cortinas</button>
+        }
       } @else {
-        <button type="button" class="btn btn-block" [disabled]="busy()" (click)="reopen()">Volver a borrador para editar</button>
+        <button type="button" class="btn btn-block" [disabled]="busy()" (click)="askReopen()">Volver a borrador para editar</button>
       }
       <a class="btn btn-block" [routerLink]="['/clientes', r.customer_id]">Ver cliente</a>
       @if (canDelete()) {
@@ -174,3 +212,4 @@
 }
 
 <app-confirm-dialog [title]="confirmTitle()" [message]="confirmMessage()" (confirmed)="onConfirmed()" />
+<app-confirm-dialog #reopenDlg title="¿Volver a borrador?" message="La firma del cliente se borra, porque las medidas podrían cambiar. Al completar de nuevo, el cliente vuelve a firmar." confirmLabel="Volver a borrador" (confirmed)="reopen()" />

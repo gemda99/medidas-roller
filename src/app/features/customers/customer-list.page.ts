@@ -4,10 +4,11 @@ import { LucidePlus, LucideSearch, LucideChevronRight } from '@lucide/angular';
 import { CustomerRepository } from '../../data-access/repositories/customer.repository';
 import { Customer } from '../../domain/models/customer';
 import { toUserMessage } from '../../shared/errors';
+import { RutPipe } from '../../shared/pipes/rut.pipe';
 
 @Component({
   selector: 'app-customer-list-page',
-  imports: [RouterLink, LucidePlus, LucideSearch, LucideChevronRight],
+  imports: [RouterLink, LucidePlus, LucideSearch, LucideChevronRight, RutPipe],
   template: `
     <div class="page">
       <div class="spread">
@@ -21,7 +22,7 @@ import { toUserMessage } from '../../shared/errors';
         <label for="q" class="sr-only">Buscar cliente</label>
         <div class="search">
           <svg lucideSearch [size]="18" aria-hidden="true"></svg>
-          <input id="q" type="search" placeholder="Nombre o teléfono" [value]="term()"
+          <input id="q" type="search" placeholder="Nombre, teléfono o RUT" [value]="term()"
                  (input)="onSearch($any($event.target).value)" autocomplete="off" />
         </div>
       </div>
@@ -51,7 +52,7 @@ import { toUserMessage } from '../../shared/errors';
               <a class="list-item" [routerLink]="['/clientes', c.id]">
                 <span class="stack" style="gap:2px">
                   <strong>{{ c.full_name }}</strong>
-                  <span class="muted">{{ c.phone }}</span>
+                  <span class="muted">{{ c.phone }}@if (c.rut) { · RUT {{ c.rut | rut }} }</span>
                 </span>
                 <svg lucideChevronRight [size]="20" aria-hidden="true" color="#5b6b82"></svg>
               </a>

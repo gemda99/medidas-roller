@@ -18,6 +18,7 @@
           <svg lucidePhone [size]="18" aria-hidden="true"></svg> {{ c.phone }}
         </a>
         @if (c.email) { <span class="muted">{{ c.email }}</span> }
+        @if (c.rut) { <span class="muted">RUT {{ c.rut | rut }}</span> }
       </div>
       @if (c.notes) { <p class="muted" style="margin:0; white-space:pre-line">{{ c.notes }}</p> }
     </section>

@@ -25,7 +25,7 @@ const rect: Rectification = {
   id: 'R', customer_id: 'C', executive_id: 'E', executive_name: 'Yo', address_line: 'Calle 1', comuna: 'Maipú',
   address_reference: null, visit_date: '2026-11-21', installation_date: null, observations: null,
   explained_light_entry: false, explained_fabric_position: false, explained_side_measure: false,
-  status: 'borrador', created_at: '', updated_at: '2026-11-21T00:00:00Z', customers: { full_name: 'Cliente', phone: '9' },
+  status: 'borrador', signature_path: null, signed_name: null, signed_rut: null, signed_at: null, created_at: '', updated_at: '2026-11-21T00:00:00Z', customers: { full_name: 'Cliente', phone: '9' },
   locations: [{
     id: 'L', rectification_id: 'R', name: 'Living', notes: null, sort_order: 10,
     curtains: [

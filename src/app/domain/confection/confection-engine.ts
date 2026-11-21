@@ -28,6 +28,7 @@ export interface ConfectionLayer {
 }
 
 export interface ConfectionCurtain {
+  curtain_id: string;
   index: number;
   location_name: string;
   product_code: string;
@@ -125,6 +126,7 @@ export function confectionForCurtain(
   ].filter(Boolean);
 
   return {
+    curtain_id: c.id,
     index,
     location_name: locationName,
     product_code: product?.code ?? '—',

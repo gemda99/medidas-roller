@@ -12,7 +12,7 @@ import {
 
 const SUMMARY = `id, customer_id, executive_id, executive_name, address_line, comuna, address_reference, visit_date,
   installation_date, observations, explained_light_entry, explained_fabric_position, explained_side_measure,
-  status, created_at, updated_at, customers(full_name, phone)`;
+  status, created_at, updated_at, signature_path, signed_name, signed_rut, signed_at, customers(full_name, phone, rut)`;
 
 const TREE = `${SUMMARY},
   locations(id, rectification_id, name, notes, sort_order, created_at,
@@ -73,6 +73,28 @@ export class RectificationRepository {
   async setStatus(id: string, status: RectificationStatus): Promise<void> {
     const { error } = await this.db.from('rectifications').update({ status }).eq('id', id);
     if (error) throw error;
+  }
+
+  /** Sube la firma (PNG) y completa la rectificación en un solo paso (sign_rectification). */
+  async sign(id: string, signature: Blob, name: string, rut: string | null): Promise<void> {
+    const path = `${id}/firma-${Date.now()}.png`;
+    const up = await this.db.storage.from('documents').upload(path, signature, { contentType: 'image/png', upsert: false });
+    if (up.error) throw up.error;
+    const { error } = await this.db.rpc('sign_rectification', { p_id: id, p_path: path, p_name: name, p_rut: rut });
+    if (error) throw error;
+  }
+
+  /** La firma como data URL (para mostrarla y para incrustarla en imágenes sin problemas de origen). */
+  async signatureDataUrl(path: string | null): Promise<string | null> {
+    if (!path) return null;
+    const { data, error } = await this.db.storage.from('documents').download(path);
+    if (error || !data) return null;
+    return await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(data);
+    });
   }
 
   async remove(id: string): Promise<void> {
