@@ -22,6 +22,8 @@ export interface Product {
   kind: ProductKind;
   cenefa_mode: CenefaMode;
   fabricated: boolean;
+  /** false = solo tela (velcro con contrapeso): sin motor, cadena ni mecanismo. */
+  has_mechanism: boolean;
   active: boolean;
   sort_order: number;
   product_components: ProductComponent[];

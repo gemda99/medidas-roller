@@ -15,9 +15,9 @@ const SUMMARY = `id, customer_id, executive_id, executive_name, address_line, co
 
 const TREE = `${SUMMARY},
   locations(id, rectification_id, name, notes, sort_order, created_at,
-    curtains(id, location_id, product_id, label, surface, surface_other, mounting, fall, chain_side, chain_length_m,
-      has_cenefa, notes, sort_order, created_at,
-      curtain_components(id, role, product_id, color_name, width_cm, height_cm, motorized),
+    curtains(id, location_id, product_id, label, surface, surface_other, mounting, chain_side, chain_length_m,
+      has_cenefa, swap_layers, notes, sort_order, created_at,
+      curtain_components(id, role, product_id, color_name, width_cm, height_cm, fall, motorized),
       curtain_options(product_option_id),
       curtain_accessories(accessory_id, quantity)))`;
 

@@ -5,7 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CatalogRepository } from '../../data-access/repositories/catalog.repository';
 import { RectificationRepository } from '../../data-access/repositories/rectification.repository';
 import { Catalog, ComponentRole, Product } from '../../domain/models/catalog';
-import { Curtain, CurtainPayload, Rectification } from '../../domain/models/rectification';
+import { CurtainPayload, Fall, Rectification } from '../../domain/models/rectification';
 import {
   CurtainIssue, componentLabel, duplicatePayload, reshapeComponents, validateCurtain,
 } from '../../domain/rectification/curtain-rules';
@@ -20,6 +20,7 @@ type ComponentForm = FormGroup<{
   color_name: FormControl<string>;
   width_cm: FormControl<string>;
   height_cm: FormControl<string>;
+  fall: FormControl<string>;
   motorized: FormControl<boolean>;
 }>;
 
@@ -62,7 +63,7 @@ export class CurtainEditorPage implements OnInit {
   ];
   readonly mountings: SegmentOption[] = [{ value: 'interno', label: 'Interno' }, { value: 'muro', label: 'Muro' }, { value: 'cielo', label: 'Cielo' }];
   readonly falls: SegmentOption[] = [{ value: 'interna', label: 'Interna' }, { value: 'externa', label: 'Externa' }];
-  readonly sides: SegmentOption[] = [{ value: 'izquierda', label: 'Izq.' }, { value: 'derecha', label: 'Der.' }];
+  readonly sides: SegmentOption[] = [{ value: 'izquierda', label: 'Izquierda' }, { value: 'derecha', label: 'Derecha' }];
   readonly chains: SegmentOption[] = [
     { value: '1', label: '1 m' }, { value: '1.5', label: '1,5 m' }, { value: '2', label: '2 m' }, { value: 'otro', label: 'Otro' },
   ];
@@ -84,11 +85,11 @@ export class CurtainEditorPage implements OnInit {
     surface: [''],
     surface_other: [''],
     mounting: [''],
-    fall: [''],
     chain_side: [''],
     chain_length: [''],
     chain_other: [''],
     has_cenefa: [false],
+    swap_layers: [false],
     notes: [''],
     components: this.fb.array<ComponentForm>([]),
     option_ids: this.fb.control<string[]>([]),
@@ -147,8 +148,8 @@ export class CurtainEditorPage implements OnInit {
 
   private empty(locationId: string): CurtainPayload {
     return {
-      location_id: locationId, product_id: '', label: null, surface: '', surface_other: null, mounting: '', fall: '',
-      chain_side: '', chain_length_m: '', has_cenefa: false, notes: null, components: [], option_ids: [], accessories: [],
+      location_id: locationId, product_id: '', label: null, surface: '', surface_other: null, mounting: '',
+      chain_side: '', chain_length_m: '', has_cenefa: false, swap_layers: false, notes: null, components: [], option_ids: [], accessories: [],
     };
   }
 
@@ -173,6 +174,7 @@ export class CurtainEditorPage implements OnInit {
         color_name: c.color_name ?? '',
         width_cm: Number.isFinite(c.width_cm) ? String(c.width_cm).replace('.', ',') : '',
         height_cm: Number.isFinite(c.height_cm) ? String(c.height_cm).replace('.', ',') : '',
+        fall: c.fall ?? '',
         motorized: c.motorized,
       })),
     );
@@ -183,11 +185,11 @@ export class CurtainEditorPage implements OnInit {
       surface: p.surface,
       surface_other: p.surface_other ?? '',
       mounting: p.mounting,
-      fall: p.fall,
       chain_side: p.chain_side,
       chain_length: chain === '' ? '' : CHAIN_PRESETS.includes(chain) ? chain : 'otro',
       chain_other: chain !== '' && !CHAIN_PRESETS.includes(chain) ? chain.replace('.', ',') : '',
       has_cenefa: p.has_cenefa,
+      swap_layers: p.swap_layers,
       notes: p.notes ?? '',
       option_ids: p.option_ids,
       accessories: Object.fromEntries(p.accessories.map((a) => [a.accessory_id, a.quantity])),
@@ -204,6 +206,7 @@ export class CurtainEditorPage implements OnInit {
           color_name: [c.color_name],
           width_cm: [c.width_cm],
           height_cm: [c.height_cm],
+          fall: [c.fall ?? ''],
           motorized: [c.motorized],
         }),
         { emitEvent: false },
@@ -215,7 +218,8 @@ export class CurtainEditorPage implements OnInit {
 
   selectProduct(p: Product): void {
     const current = this.components.getRawValue().map((c) => ({
-      role: c.role, color_name: c.color_name || null, width_cm: parseDecimal(c.width_cm), height_cm: parseDecimal(c.height_cm), motorized: c.motorized,
+      role: c.role, color_name: c.color_name || null, width_cm: parseDecimal(c.width_cm), height_cm: parseDecimal(c.height_cm),
+      fall: (c.fall || null) as Fall | null, motorized: c.motorized,
     }));
     const next = reshapeComponents(p, current);
     this.setComponentsFromForm(
@@ -224,6 +228,7 @@ export class CurtainEditorPage implements OnInit {
         color_name: c.color_name ?? '',
         width_cm: Number.isFinite(c.width_cm) && c.width_cm > 0 ? String(c.width_cm).replace('.', ',') : '',
         height_cm: Number.isFinite(c.height_cm) && c.height_cm > 0 ? String(c.height_cm).replace('.', ',') : '',
+        fall: c.fall ?? '',
         motorized: c.motorized,
       })),
     );
@@ -232,13 +237,20 @@ export class CurtainEditorPage implements OnInit {
       product_id: p.id,
       has_cenefa: p.cenefa_mode === 'incluida' ? true : p.cenefa_mode === 'no' ? false : this.form.controls.has_cenefa.value,
       option_ids: this.form.controls.option_ids.value.filter((id) => validOptions.has(id)),
+      swap_layers: p.kind === 'sistema' ? this.form.controls.swap_layers.value : false,
+      ...(p.has_mechanism ? {} : { chain_side: '', chain_length: '', chain_other: '' }),
     });
     this.productId.set(p.id);
   }
 
   label(role: ComponentRole): string {
     const p = this.product();
-    return p ? componentLabel(role, p, this.catalog()?.products ?? []) : '';
+    return p ? componentLabel(role, p, this.catalog()?.products ?? [], this.form.controls.swap_layers.value) : '';
+  }
+
+  /** Invierte qué tela va atrás y cuál adelante en un doble (SE atrás/BO adelante o al revés). */
+  swapLayers(): void {
+    this.form.controls.swap_layers.setValue(!this.form.controls.swap_layers.value);
   }
 
   toggleOption(id: string): void {
@@ -282,16 +294,17 @@ export class CurtainEditorPage implements OnInit {
       surface: v.surface as CurtainPayload['surface'],
       surface_other: v.surface === 'otro' ? v.surface_other.trim() || null : null,
       mounting: v.mounting as CurtainPayload['mounting'],
-      fall: v.fall as CurtainPayload['fall'],
       chain_side: v.chain_side as CurtainPayload['chain_side'],
       chain_length_m: Number.isFinite(chain) ? chain : '',
       has_cenefa: v.has_cenefa,
+      swap_layers: v.swap_layers,
       notes: v.notes.trim() || null,
       components: v.components.map((c) => ({
         role: c.role,
         color_name: c.color_name.trim() || null,
         width_cm: parseDecimal(c.width_cm),
         height_cm: parseDecimal(c.height_cm),
+        fall: (c.fall || null) as Fall | null,
         motorized: c.motorized,
       })),
       option_ids: v.option_ids,

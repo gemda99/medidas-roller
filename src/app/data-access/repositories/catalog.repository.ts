@@ -28,7 +28,7 @@ export class CatalogRepository {
     const [products, colors, accessories] = await Promise.all([
       this.db
         .from('products')
-        .select('id, code, name, kind, cenefa_mode, fabricated, active, sort_order, product_components!product_components_system_product_id_fkey(role, component_product_id), product_options(id, product_id, name, active, sort_order)')
+        .select('id, code, name, kind, cenefa_mode, fabricated, has_mechanism, active, sort_order, product_components!product_components_system_product_id_fkey(role, component_product_id), product_options(id, product_id, name, active, sort_order)')
         .order('sort_order'),
       this.db.from('colors').select('id, name, active').eq('active', true).order('sort_order'),
       this.db.from('accessories').select('id, name, scope, active').eq('active', true).order('sort_order'),

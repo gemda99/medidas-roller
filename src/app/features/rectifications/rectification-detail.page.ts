@@ -9,7 +9,7 @@ import { CatalogRepository } from '../../data-access/repositories/catalog.reposi
 import { RectificationRepository } from '../../data-access/repositories/rectification.repository';
 import { Catalog } from '../../domain/models/catalog';
 import { Curtain, Location, Rectification, RectificationGeneral } from '../../domain/models/rectification';
-import { completionIssues, curtainSummary, duplicatePayload } from '../../domain/rectification/curtain-rules';
+import { completionIssues, curtainCard, CurtainCard, curtainSummary, duplicatePayload } from '../../domain/rectification/curtain-rules';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
 import { DraftStore } from '../../shared/drafts/draft-store';
 import { toUserMessage } from '../../shared/errors';
@@ -160,8 +160,17 @@ export class RectificationDetailPage implements OnInit {
     return curtainSummary(c, this.catalog()?.products.find((p) => p.id === c.product_id));
   }
 
-  productName(c: Curtain): string {
-    return this.catalog()?.products.find((p) => p.id === c.product_id)?.name ?? '';
+  private readonly names = computed(() => {
+    const c = this.catalog();
+    return {
+      options: new Map((c?.products ?? []).flatMap((p) => p.product_options.map((o) => [o.id, o.name] as [string, string]))),
+      accessories: new Map((c?.accessories ?? []).map((a) => [a.id, a.name] as [string, string])),
+    };
+  });
+
+  card(c: Curtain): CurtainCard {
+    const products = this.catalog()?.products ?? [];
+    return curtainCard(c, products.find((p) => p.id === c.product_id), products, this.names());
   }
 
   // ---- Ubicaciones ----

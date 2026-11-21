@@ -8,13 +8,14 @@ import { DraftStore } from '../../shared/drafts/draft-store';
 import { CurtainEditorPage } from './curtain-editor.page';
 
 const p = (id: string, kind: 'tela' | 'sistema', extra: Partial<Product> = {}): Product => ({
-  id, code: id, name: id, kind, cenefa_mode: 'opcional', fabricated: true, active: true, sort_order: 0,
+  id, code: id, name: id, kind, cenefa_mode: 'opcional', fabricated: true, has_mechanism: true, active: true, sort_order: 0,
   product_components: [], product_options: [], ...extra,
 });
 const catalog: Catalog = {
   products: [
     p('SE', 'tela'),
     p('BO', 'tela', { product_options: [{ id: 'velcro', product_id: 'BO', name: 'Velcro', active: true, sort_order: 0 }] }),
+    p('VC', 'tela', { cenefa_mode: 'no', has_mechanism: false }),
     p('SE+BO', 'sistema', { cenefa_mode: 'no', product_components: [{ role: 'fondo', component_product_id: 'SE' }, { role: 'frente', component_product_id: 'BO' }] }),
   ],
   colors: [{ id: 'c', name: 'Beige', active: true }],
@@ -76,7 +77,7 @@ describe('CurtainEditorPage', () => {
   it('arma el payload de una cortina simple con coma decimal, opciones y accesorios', async () => {
     const { page, saved } = await render();
     page.selectProduct(catalog.products[1]);
-    page.components.at(0).patchValue({ width_cm: '148,5', height_cm: '220', color_name: 'Beige' });
+    page.components.at(0).patchValue({ width_cm: '148,5', height_cm: '220', color_name: 'Beige', fall: 'externa' });
     page.form.patchValue({ surface: 'concreto', mounting: 'muro', chain_side: 'izquierda', chain_length: '1.5', has_cenefa: true });
     page.toggleOption('velcro');
     page.bump('peso', 1);
@@ -86,7 +87,7 @@ describe('CurtainEditorPage', () => {
     expect(saved[0]).toMatchObject({
       location_id: 'L', product_id: 'BO', chain_length_m: 1.5, has_cenefa: true, option_ids: ['velcro'],
       accessories: [{ accessory_id: 'peso', quantity: 2 }],
-      components: [{ role: 'unica', width_cm: 148.5, height_cm: 220, color_name: 'Beige', motorized: false }],
+      components: [{ role: 'unica', width_cm: 148.5, height_cm: 220, color_name: 'Beige', fall: 'externa', motorized: false }],
     });
   });
 
@@ -95,9 +96,40 @@ describe('CurtainEditorPage', () => {
     page.selectProduct(catalog.products[1]);
     page.components.at(0).patchValue({ width_cm: '150', height_cm: '160' });
     page.form.patchValue({ has_cenefa: true });
-    page.selectProduct(catalog.products[2]);
+    page.selectProduct(catalog.products[3]);
     expect(page.components.getRawValue().map((c) => [c.role, c.width_cm])).toEqual([['fondo', '150'], ['frente', '150']]);
     expect(page.form.controls.has_cenefa.value).toBe(false);
+  });
+
+  it('doble: invertir el orden cambia las etiquetas y se envía swap_layers; cada tela con su caída', async () => {
+    const { page, saved } = await render();
+    page.selectProduct(catalog.products[3]);
+    expect(page.label('fondo')).toContain('SE');
+    page.swapLayers();
+    expect(page.label('fondo')).toContain('BO');
+    expect(page.label('frente')).toContain('SE');
+    page.components.at(0).patchValue({ width_cm: '150', height_cm: '160', fall: 'interna' });
+    page.components.at(1).patchValue({ width_cm: '150', height_cm: '160', fall: 'externa' });
+    await page.save(false);
+    expect(saved[0].swap_layers).toBe(true);
+    expect(saved[0].components.map((c) => c.fall)).toEqual(['interna', 'externa']);
+  });
+
+  it('velcro con contrapeso: sin motor ni cadena en la pantalla y en lo que se envía', async () => {
+    const { fixture, page, saved } = await render();
+    page.selectProduct(catalog.products[1]);
+    page.form.patchValue({ chain_side: 'izquierda', chain_length: '1.5' });
+    page.components.at(0).patchValue({ motorized: true });
+    page.selectProduct(catalog.products[2]);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Solo tela');
+    expect(text).not.toContain('Motor en esta tela');
+    expect(text).not.toContain('Lado de la cadena');
+    page.components.at(0).patchValue({ width_cm: '47', height_cm: '204' });
+    await page.save(false);
+    expect(saved[0]).toMatchObject({ product_id: 'VC', chain_side: '', chain_length_m: '' });
+    expect(saved[0].components[0].motorized).toBe(false);
   });
 
   it('cadena vacía (velcro) se envía vacía; cadena «otro» acepta coma', async () => {

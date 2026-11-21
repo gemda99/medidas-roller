@@ -40,6 +40,13 @@
       @if (issue('components')) { <span class="error">{{ issue('components') }}</span> }
     </div>
 
+    @if (product()?.kind === 'sistema') {
+      <div class="swap">
+        <span class="muted">Orden de las telas</span>
+        <button type="button" class="btn" (click)="swapLayers()">⇅ Invertir orden</button>
+      </div>
+    }
+
     @for (c of components.controls; track $index; let i = $index) {
       <section class="card stack comp" [formGroup]="c">
         <div class="spread"><strong>{{ label(c.controls.role.value) }}</strong><span class="muted">medidas en cm</span></div>
@@ -62,7 +69,13 @@
           <label [for]="'col' + i">Color</label>
           <input [id]="'col' + i" formControlName="color_name" list="colores" autocomplete="off" placeholder="Ej.: Beige-3" />
         </div>
-        <label class="check"><input type="checkbox" formControlName="motorized" /> Motor en esta tela</label>
+        <div class="field">
+          <span class="lbl">Caída de tela</span>
+          <app-segmented formControlName="fall" [options]="falls" label="Caída de tela" [clearable]="true" />
+        </div>
+        @if (product()?.has_mechanism !== false) {
+          <label class="check"><input type="checkbox" formControlName="motorized" /> Motor en esta tela</label>
+        }
       </section>
     }
     <datalist id="colores">@for (col of catalog()!.colors; track col.id) { <option [value]="col.name"></option> }</datalist>
@@ -81,15 +94,12 @@
       <app-segmented formControlName="mounting" [options]="mountings" label="Instalación" [clearable]="true" />
     </div>
 
-    <div class="two">
-      <div class="field">
-        <span class="lbl">Caída de tela</span>
-        <app-segmented formControlName="fall" [options]="falls" label="Caída de tela" [clearable]="true" />
-      </div>
-      <div class="field">
-        <span class="lbl">Lado cadena</span>
-        <app-segmented formControlName="chain_side" [options]="sides" label="Lado de la cadena" [clearable]="true" />
-      </div>
+    @if (product()?.has_mechanism === false) {
+      <p class="hint">Solo tela: sin motor, cadena ni mecanismo.</p>
+    } @else {
+    <div class="field">
+      <span class="lbl">Lado de la cadena</span>
+      <app-segmented formControlName="chain_side" [options]="sides" label="Lado de la cadena" [clearable]="true" />
     </div>
 
     <div class="field">
@@ -101,6 +111,7 @@
       }
       @if (issue('chain_length_m')) { <span class="error">{{ issue('chain_length_m') }}</span> }
     </div>
+    }
 
     @if (product(); as p) {
       <section class="card stack">
@@ -136,7 +147,7 @@
     </div>
     <div class="field">
       <label for="notes">Nota</label>
-      <textarea id="notes" formControlName="notes" placeholder="Medida alternativa, contrapeso, «bien arriba»…"></textarea>
+      <textarea id="notes" formControlName="notes" placeholder="Medida alternativa, «bien arriba»…"></textarea>
     </div>
     <p class="hint">Las fotos se agregan desde el Sprint 3.</p>
 

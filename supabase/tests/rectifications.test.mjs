@@ -38,16 +38,15 @@ const simple = (loc, extra = {}) => ({
   product_id: ids.BO,
   surface: 'concreto',
   mounting: 'muro',
-  fall: 'externa',
   chain_side: 'izquierda',
   chain_length_m: '1.5',
-  components: [{ role: 'unica', width_cm: 170, height_cm: 220, color_name: 'Beige', motorized: false }],
+  components: [{ role: 'unica', width_cm: 170, height_cm: 220, color_name: 'Beige', fall: 'externa', motorized: false }],
   ...extra,
 });
 
-test('el catálogo inicial tiene los 8 productos y los dobles con fondo y frente', async () => {
+test('el catálogo inicial tiene los 9 productos y los dobles con fondo y frente', async () => {
   const { rows } = await db.query(`select code from public.products order by sort_order`);
-  assert.deepEqual(rows.map((r) => r.code), ['SE', 'BO', 'SE+BO', 'RD', 'RDBO', 'BOP', 'SE+BOP', 'VE']);
+  assert.deepEqual(rows.map((r) => r.code), ['SE', 'BO', 'SE+BO', 'RD', 'RDBO', 'BOP', 'SE+BOP', 'VC', 'VE']);
   const comps = await db.query(
     `select s.code sys, pc.role, c.code comp from public.product_components pc
      join public.products s on s.id = pc.system_product_id join public.products c on c.id = pc.component_product_id
@@ -95,7 +94,9 @@ test('un medidor no puede agregar ubicaciones ni cortinas a una rectificación a
 
 test('save_curtain guarda una cortina simple con accesorios y opciones válidas', async () => {
   const { loc } = await newRect(MEDIDOR);
-  const velcro = (await db.query(`select id from public.product_options where product_id = $1 and name = 'Velcro'`, [ids.BO])).rows[0].id;
+  const velcro = (
+    await as(ADMIN, (tx) => tx.query(`insert into public.product_options (product_id, name) values ($1, 'Opción prueba') returning id`, [ids.BO]))
+  ).rows[0].id;
   const id = await as(MEDIDOR, async (tx) => {
     const r = await tx.query(`select public.save_curtain($1) as id`, [
       JSON.stringify(simple(loc, { option_ids: [velcro], accessories: [{ accessory_id: ids.Peso, quantity: 2 }], has_cenefa: true })),
@@ -221,4 +222,59 @@ test('no se puede borrar un cliente que tiene rectificaciones', async () => {
     as(ADMIN, (tx) => tx.query(`delete from public.customers where id = $1`, [customerId])),
     /foreign key/,
   );
+});
+
+test('velcro y contrapeso ya no son opciones: VC es un producto sin mecanismo', async () => {
+  const opts = await db.query(`select 1 from public.product_options where name in ('Velcro', 'Contrapeso')`);
+  assert.equal(opts.rows.length, 0);
+  const { loc } = await newRect(MEDIDOR);
+  const id = await as(MEDIDOR, async (tx) => {
+    const r = await tx.query(`select public.save_curtain($1) as id`, [
+      JSON.stringify(simple(loc, {
+        product_id: ids.VC,
+        components: [{ role: 'unica', width_cm: 47, height_cm: 204, fall: 'interna', motorized: true }],
+      })),
+    ]);
+    return r.rows[0].id;
+  });
+  const c = await db.query(`select chain_side, chain_length_m from public.curtains where id = $1`, [id]);
+  assert.deepEqual(c.rows[0], { chain_side: null, chain_length_m: null });
+  const comp = await db.query(`select motorized, fall from public.curtain_components where curtain_id = $1`, [id]);
+  assert.deepEqual(comp.rows[0], { motorized: false, fall: 'interna' });
+});
+
+test('doble invertido: BO queda atrás (fondo) y SE adelante (frente), cada uno con su caída', async () => {
+  const { loc } = await newRect(MEDIDOR);
+  const id = await as(MEDIDOR, async (tx) => {
+    const r = await tx.query(`select public.save_curtain($1) as id`, [
+      JSON.stringify(simple(loc, {
+        product_id: ids['SE+BO'],
+        swap_layers: true,
+        components: [
+          { role: 'fondo', width_cm: 150, height_cm: 160, fall: 'interna' },
+          { role: 'frente', width_cm: 150, height_cm: 160, fall: 'externa' },
+        ],
+      })),
+    ]);
+    return r.rows[0].id;
+  });
+  const { rows } = await db.query(
+    `select cc.role, p.code, cc.fall from public.curtain_components cc join public.products p on p.id = cc.product_id
+     where curtain_id = $1 order by role`,
+    [id],
+  );
+  assert.deepEqual(rows, [
+    { role: 'fondo', code: 'BO', fall: 'interna' },
+    { role: 'frente', code: 'SE', fall: 'externa' },
+  ]);
+  const c = await db.query(`select swap_layers from public.curtains where id = $1`, [id]);
+  assert.equal(c.rows[0].swap_layers, true);
+});
+
+test('swap_layers se ignora en productos simples', async () => {
+  const { loc } = await newRect(MEDIDOR);
+  const id = await as(MEDIDOR, async (tx) =>
+    (await tx.query(`select public.save_curtain($1) as id`, [JSON.stringify(simple(loc, { swap_layers: true }))])).rows[0].id,
+  );
+  assert.equal((await db.query(`select swap_layers from public.curtains where id = $1`, [id])).rows[0].swap_layers, false);
 });

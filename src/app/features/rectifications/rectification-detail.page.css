@@ -19,11 +19,23 @@
 .tools { display: flex; margin-left: auto; }
 .danger { color: var(--danger); }
 .rename { flex: 1; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 0 10px; font: 16px Inter, sans-serif; }
-.curtain { display: flex; align-items: center; border-top: 1px solid var(--line); }
-.curtain-link { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; text-decoration: none; color: var(--ink); min-height: 56px; }
-.curtain-link:hover { background: #f7f9fc; color: var(--ink); }
-.note { font-size: 13px; color: var(--ink); }
-.add { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; border-top: 1px dashed var(--line-strong); font-weight: 600; text-decoration: none; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 10px; padding: 10px; }
+.ccard { position: relative; display: flex; flex-direction: column; border: 1.5px solid var(--navy); border-radius: 12px; background: #fff; min-height: 150px; }
+.ccard-body { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 8px; text-decoration: none; color: var(--ink); flex: 1; }
+.ccard-body:hover { background: #f7f9fc; color: var(--ink); border-radius: 12px; }
+.ccard-top { display: flex; justify-content: space-between; align-items: baseline; }
+.code { font-weight: 800; font-size: 20px; color: var(--navy); }
+.num { font-size: 12px; color: var(--muted); font-weight: 600; }
+.pname { font-size: 13px; color: var(--muted); margin-top: -4px; }
+.layer { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; background: var(--soft); border-radius: 8px; }
+.layer-label { font-size: 12px; font-weight: 700; color: var(--navy); }
+.measures { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.measures small { font-size: 12px; font-weight: 600; color: var(--muted); }
+.small { font-size: 13px; }
+.note { font-size: 13px; font-style: italic; }
+.ccard-tools { display: flex; justify-content: flex-end; border-top: 1px solid var(--line); padding: 2px 4px; }
+.add-card { align-items: center; justify-content: center; gap: 6px; border: 1.5px dashed var(--line-strong); color: var(--blue); font-weight: 600; text-decoration: none; }
+.add-card:hover { background: var(--soft); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .qchip { min-height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line-strong); background: #fff; font: 600 14px Inter, sans-serif; color: var(--navy); cursor: pointer; }

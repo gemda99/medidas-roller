@@ -64,26 +64,38 @@
           }
         </div>
 
-        @for (c of l.curtains; track c.id) {
-          <div class="curtain">
-            <a class="curtain-link" [routerLink]="['/rectificaciones', r.id, 'cortinas', c.id]">
-              <strong>{{ productName(c) }}</strong>
-              <span class="muted">{{ summary(c) }}</span>
-              @if (c.notes) { <span class="note">Nota: {{ c.notes }}</span> }
+        <div class="cards">
+          @for (c of l.curtains; track c.id; let n = $index) {
+            @let k = card(c);
+            <article class="ccard">
+              <a class="ccard-body" [routerLink]="['/rectificaciones', r.id, 'cortinas', c.id]" [attr.aria-label]="'Editar cortina ' + (n + 1) + ' ' + k.code">
+                <span class="ccard-top"><span class="code">{{ k.code }}</span><span class="num">#{{ n + 1 }}</span></span>
+                <span class="pname">{{ c.label || k.name }}</span>
+                @for (layer of k.layers; track $index) {
+                  <span class="layer">
+                    @if (layer.label) { <span class="layer-label">{{ layer.label }}</span> }
+                    <span class="measures">{{ layer.measures }} <small>cm</small></span>
+                    @if (layer.details) { <span class="muted small">{{ layer.details }}</span> }
+                  </span>
+                }
+                @for (d of k.details; track $index) { <span class="small">{{ d }}</span> }
+                @if (c.notes) { <span class="note">Nota: {{ c.notes }}</span> }
+              </a>
+              @if (!locked()) {
+                <span class="ccard-tools">
+                  <button type="button" class="btn btn-icon btn-ghost" aria-label="Duplicar cortina" [disabled]="busy()" (click)="duplicate(c)"><svg lucideCopy [size]="18" aria-hidden="true"></svg></button>
+                  <button type="button" class="btn btn-icon btn-ghost danger" aria-label="Eliminar cortina" (click)="ask({ kind: 'curtain', curtain: c })"><svg lucideTrash2 [size]="18" aria-hidden="true"></svg></button>
+                </span>
+              }
+            </article>
+          }
+          @if (!locked()) {
+            <a class="ccard add-card" [routerLink]="['/rectificaciones', r.id, 'cortinas', 'nueva']" [queryParams]="{ ubicacion: l.id }">
+              <svg lucidePlus [size]="22" aria-hidden="true"></svg>
+              <span>Agregar cortina</span>
             </a>
-            @if (!locked()) {
-            <span class="tools">
-              <button type="button" class="btn btn-icon btn-ghost" aria-label="Duplicar cortina" [disabled]="busy()" (click)="duplicate(c)"><svg lucideCopy [size]="18" aria-hidden="true"></svg></button>
-              <button type="button" class="btn btn-icon btn-ghost danger" aria-label="Eliminar cortina" (click)="ask({ kind: 'curtain', curtain: c })"><svg lucideTrash2 [size]="18" aria-hidden="true"></svg></button>
-            </span>
-            }
-          </div>
-        }
-        @if (!locked()) {
-        <a class="add" [routerLink]="['/rectificaciones', r.id, 'cortinas', 'nueva']" [queryParams]="{ ubicacion: l.id }">
-          <svg lucidePlus [size]="18" aria-hidden="true"></svg> Agregar cortina en {{ l.name }}
-        </a>
-        }
+          }
+        </div>
       </section>
     }
 

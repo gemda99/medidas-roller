@@ -13,6 +13,7 @@ export interface CurtainComponent {
   color_name: string | null;
   width_cm: number;
   height_cm: number;
+  fall: Fall | null;
   motorized: boolean;
 }
 
@@ -24,10 +25,11 @@ export interface Curtain {
   surface: Surface | null;
   surface_other: string | null;
   mounting: Mounting | null;
-  fall: Fall | null;
   chain_side: ChainSide | null;
   chain_length_m: number | null;
   has_cenefa: boolean;
+  /** Doble invertido: la tela que el producto pone adelante va atrás. */
+  swap_layers: boolean;
   notes: string | null;
   sort_order: number;
   curtain_components: CurtainComponent[];
@@ -80,10 +82,10 @@ export interface CurtainPayload {
   surface: Surface | '';
   surface_other: string | null;
   mounting: Mounting | '';
-  fall: Fall | '';
   chain_side: ChainSide | '';
   chain_length_m: number | '';
   has_cenefa: boolean;
+  swap_layers: boolean;
   notes: string | null;
   components: Omit<CurtainComponent, 'id' | 'product_id'>[];
   option_ids: string[];

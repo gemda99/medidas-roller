@@ -8,7 +8,7 @@ import { Curtain, CurtainComponent, CurtainPayload } from '../models/rectificati
 export const MIN_CM = 10;
 export const MAX_CM = 1000;
 
-const ROLE_LABEL: Record<ComponentRole, string> = { unica: 'Tela', fondo: 'Tela de fondo', frente: 'Tela de frente' };
+const ROLE_LABEL: Record<ComponentRole, string> = { unica: 'Tela', fondo: 'Atrás (fondo)', frente: 'Adelante (frente)' };
 
 /** Roles de tela que exige un producto: 1 en simple, fondo y frente en un doble. */
 export function rolesFor(product: Product): ComponentRole[] {
@@ -17,24 +17,38 @@ export function rolesFor(product: Product): ComponentRole[] {
   return order.filter((r) => product.product_components.some((c) => c.role === r));
 }
 
-/** Nombre visible de cada tela: «Tela de fondo · Sunscreen». */
-export function componentLabel(role: ComponentRole, product: Product, catalog: Product[]): string {
+/** Producto tela que ocupa un rol, considerando si el doble está invertido. */
+export function layerProduct(role: ComponentRole, product: Product, catalog: Product[], swapped = false): Product | undefined {
+  if (role === 'unica') return product;
+  const effective = swapped ? (role === 'fondo' ? 'frente' : 'fondo') : role;
+  const id = product.product_components.find((c) => c.role === effective)?.component_product_id;
+  return catalog.find((p) => p.id === id);
+}
+
+/** Nombre visible de cada tela: «Atrás (fondo) · Sunscreen». */
+export function componentLabel(role: ComponentRole, product: Product, catalog: Product[], swapped = false): string {
   if (role === 'unica') return ROLE_LABEL.unica;
-  const compId = product.product_components.find((c) => c.role === role)?.component_product_id;
-  const comp = catalog.find((p) => p.id === compId);
+  const comp = layerProduct(role, product, catalog, swapped);
   return comp ? `${ROLE_LABEL[role]} · ${comp.name}` : ROLE_LABEL[role];
 }
 
 /**
- * Adapta las telas al cambiar de producto. Conserva las medidas ya escritas:
+ * Adapta las telas al cambiar de producto. Conserva lo ya escrito:
  * al pasar de simple a doble, la segunda tela copia la primera (el medidor la ajusta si difiere).
  */
 export function reshapeComponents(product: Product, current: CurtainComponent[]): CurtainComponent[] {
   const roles = rolesFor(product);
-  const base: CurtainComponent = current[0] ?? { role: 'unica', color_name: null, width_cm: 0, height_cm: 0, motorized: false };
+  const base: CurtainComponent = current[0] ?? { role: 'unica', color_name: null, width_cm: 0, height_cm: 0, fall: null, motorized: false };
   return roles.map((role, i) => {
     const same = current.find((c) => c.role === role) ?? current[i] ?? base;
-    return { role, color_name: same.color_name, width_cm: same.width_cm, height_cm: same.height_cm, motorized: same.motorized };
+    return {
+      role,
+      color_name: same.color_name,
+      width_cm: same.width_cm,
+      height_cm: same.height_cm,
+      fall: same.fall,
+      motorized: product.has_mechanism ? same.motorized : false,
+    };
   });
 }
 
@@ -66,30 +80,76 @@ export function validateCurtain(p: CurtainPayload, product: Product | undefined)
   if (p.surface === 'otro' && !p.surface_other?.trim()) {
     issues.push({ field: 'surface_other', message: 'Indica qué superficie es.' });
   }
-  if (p.chain_length_m !== '' && (p.chain_length_m < 0.3 || p.chain_length_m > 6)) {
+  if (product.has_mechanism && p.chain_length_m !== '' && (p.chain_length_m < 0.3 || p.chain_length_m > 6)) {
     issues.push({ field: 'chain_length_m', message: 'El largo de cadena debe estar entre 0,3 y 6 m.' });
   }
   return issues;
 }
 
 const fmtCm = (n: number) => String(n).replace('.', ',');
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const roleOrder = (a: CurtainComponent, b: CurtainComponent) => a.role.localeCompare(b.role);
 
-/** Resumen de una línea para listas: «RDBO · Beige-3 · 222 × 180 cm · Muro · Cadena izq. 1,5 m». */
+/** Resumen de una línea (para confirmaciones): «RDBO · Beige-3 · 222 × 180 cm». */
 export function curtainSummary(c: Curtain, product: Product | undefined): string {
-  const parts: string[] = [];
-  const comps = [...c.curtain_components].sort((a, b) => a.role.localeCompare(b.role));
-  parts.push(product?.code ?? '—');
+  const comps = [...c.curtain_components].sort(roleOrder);
+  const parts = [product?.code ?? '—'];
   const colors = [...new Set(comps.map((x) => x.color_name).filter(Boolean))];
   if (colors.length) parts.push(colors.join(' / '));
   parts.push(comps.map((x) => `${fmtCm(x.width_cm)} × ${fmtCm(x.height_cm)}`).join(' + ') + ' cm');
-  if (c.mounting) parts.push(c.mounting[0].toUpperCase() + c.mounting.slice(1));
-  if (c.chain_side) {
-    const len = c.chain_length_m ? ` ${fmtCm(c.chain_length_m)} m` : '';
-    parts.push(`Cadena ${c.chain_side === 'izquierda' ? 'izq.' : 'der.'}${len}`);
-  }
-  if (comps.some((x) => x.motorized)) parts.push('Motor');
-  if (c.has_cenefa && product?.cenefa_mode === 'opcional') parts.push('Cenefa');
   return parts.join(' · ');
+}
+
+export interface CardLayer {
+  label: string;
+  measures: string;
+  details: string;
+}
+
+export interface CurtainCard {
+  code: string;
+  name: string;
+  layers: CardLayer[];
+  details: string[];
+}
+
+/**
+ * Datos de la tarjeta de una cortina, como el cuadro de la hoja física:
+ * producto arriba, cada tela con su medida, color, caída y motor, y luego instalación y extras.
+ */
+export function curtainCard(
+  c: Curtain,
+  product: Product | undefined,
+  catalog: Product[],
+  names: { options: Map<string, string>; accessories: Map<string, string> },
+): CurtainCard {
+  const comps = [...c.curtain_components].sort(roleOrder);
+  const layers = comps.map((x) => {
+    const layer = product ? layerProduct(x.role, product, catalog, c.swap_layers) : undefined;
+    const label = x.role === 'unica' ? '' : `${x.role === 'fondo' ? 'Atrás' : 'Adelante'} · ${layer?.code ?? ''}`;
+    const details = [x.color_name, x.fall ? `Caída ${x.fall}` : null, x.motorized ? 'Motor' : null].filter(Boolean).join(' · ');
+    return { label, measures: `${fmtCm(x.width_cm)} × ${fmtCm(x.height_cm)}`, details };
+  });
+  const details: string[] = [];
+  const place = [c.mounting && cap(c.mounting), c.surface && (c.surface === 'otro' ? c.surface_other ?? 'Otra' : cap(c.surface))]
+    .filter(Boolean)
+    .join(' · ');
+  if (place) details.push(place);
+  if (product?.has_mechanism !== false && (c.chain_side || c.chain_length_m)) {
+    const side = c.chain_side ? (c.chain_side === 'izquierda' ? 'izq.' : 'der.') : '';
+    const len = c.chain_length_m ? `${fmtCm(c.chain_length_m)} m` : '';
+    details.push(['Cadena', side, len].filter(Boolean).join(' '));
+  }
+  const extras = [
+    c.has_cenefa && product?.cenefa_mode === 'opcional' ? 'Cenefa' : null,
+    ...c.curtain_options.map((o) => names.options.get(o.product_option_id) ?? null),
+    ...c.curtain_accessories.map((a) => {
+      const n = names.accessories.get(a.accessory_id);
+      return n ? `${n}${a.quantity > 1 ? ` ×${a.quantity}` : ''}` : null;
+    }),
+  ].filter(Boolean);
+  if (extras.length) details.push(extras.join(' · '));
+  return { code: product?.code ?? '—', name: product?.name ?? '', layers, details };
 }
 
 /** Copia una cortina para «Duplicar»: mismos datos, sin id, misma ubicación. */
@@ -101,13 +161,13 @@ export function duplicatePayload(c: Curtain): CurtainPayload {
     surface: c.surface ?? '',
     surface_other: c.surface_other,
     mounting: c.mounting ?? '',
-    fall: c.fall ?? '',
     chain_side: c.chain_side ?? '',
     chain_length_m: c.chain_length_m ?? '',
     has_cenefa: c.has_cenefa,
+    swap_layers: c.swap_layers,
     notes: c.notes,
-    components: c.curtain_components.map(({ role, color_name, width_cm, height_cm, motorized }) => ({
-      role, color_name, width_cm: Number(width_cm), height_cm: Number(height_cm), motorized,
+    components: [...c.curtain_components].sort(roleOrder).map(({ role, color_name, width_cm, height_cm, fall, motorized }) => ({
+      role, color_name, width_cm: Number(width_cm), height_cm: Number(height_cm), fall, motorized,
     })),
     option_ids: c.curtain_options.map((o) => o.product_option_id),
     accessories: c.curtain_accessories.map((a) => ({ ...a })),

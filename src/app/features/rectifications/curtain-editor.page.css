@@ -14,3 +14,5 @@
 .bar { position: sticky; bottom: 64px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; background: var(--bg); padding: 10px 0; }
 .bar .btn { flex: 1 1 auto; }
 @media (min-width: 900px) { .bar { bottom: 0; } .bar .btn { flex: 0 0 auto; } }
+
+.swap { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
