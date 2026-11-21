@@ -47,6 +47,31 @@ export const routes: Routes = [
         loadComponent: () => import('./features/customers/customer-detail.page').then((m) => m.CustomerDetailPage),
       },
       {
+        path: 'rectificaciones',
+        title: 'Rectificaciones · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/rectification-list.page').then((m) => m.RectificationListPage),
+      },
+      {
+        path: 'rectificaciones/nueva',
+        title: 'Nueva rectificación · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/rectification-new.page').then((m) => m.RectificationNewPage),
+      },
+      {
+        path: 'rectificaciones/:id',
+        title: 'Rectificación · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/rectification-detail.page').then((m) => m.RectificationDetailPage),
+      },
+      {
+        path: 'rectificaciones/:id/cortinas/nueva',
+        title: 'Nueva cortina · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
+      },
+      {
+        path: 'rectificaciones/:id/cortinas/:cid',
+        title: 'Cortina · Medidas Roller',
+        loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
+      },
+      {
         path: 'clientes/:id/editar',
         title: 'Editar cliente · Medidas Roller',
         loadComponent: () => import('./features/customers/customer-form.page').then((m) => m.CustomerFormPage),

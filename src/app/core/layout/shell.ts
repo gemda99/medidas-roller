@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { LucideHouse, LucideLogOut, LucideUsers } from '@lucide/angular';
+import { LucideClipboardList, LucideHouse, LucideLogOut, LucideUsers } from '@lucide/angular';
 import { AuthService } from '../auth/auth.service';
 
 /**
@@ -9,13 +9,16 @@ import { AuthService } from '../auth/auth.service';
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideHouse, LucideUsers, LucideLogOut],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideHouse, LucideUsers, LucideLogOut, LucideClipboardList],
   template: `
     <div class="layout">
       <nav class="side" aria-label="Menú principal">
         <div class="brand">Medidas Roller</div>
         <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
           <svg lucideHouse [size]="20" aria-hidden="true"></svg> Inicio
+        </a>
+        <a routerLink="/rectificaciones" routerLinkActive="on">
+          <svg lucideClipboardList [size]="20" aria-hidden="true"></svg> Rectificaciones
         </a>
         <a routerLink="/clientes" routerLinkActive="on">
           <svg lucideUsers [size]="20" aria-hidden="true"></svg> Clientes
@@ -29,11 +32,19 @@ import { AuthService } from '../auth/auth.service';
         </button>
       </nav>
 
-      <main class="content"><router-outlet /></main>
+      <main class="content">
+        @if (offline()) {
+          <div class="offline" role="status">Sin conexión. Lo que escribas se guarda en el teléfono hasta que vuelva la señal.</div>
+        }
+        <router-outlet />
+      </main>
 
       <nav class="bottom" aria-label="Menú principal">
         <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
           <svg lucideHouse [size]="22" aria-hidden="true"></svg><span>Inicio</span>
+        </a>
+        <a routerLink="/rectificaciones" routerLinkActive="on">
+          <svg lucideClipboardList [size]="22" aria-hidden="true"></svg><span>Rectificaciones</span>
         </a>
         <a routerLink="/clientes" routerLinkActive="on">
           <svg lucideUsers [size]="22" aria-hidden="true"></svg><span>Clientes</span>
@@ -49,6 +60,17 @@ import { AuthService } from '../auth/auth.service';
 export class Shell {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly offline = signal(typeof navigator !== 'undefined' && navigator.onLine === false);
+
+  constructor() {
+    const update = () => this.offline.set(navigator.onLine === false);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    });
+  }
 
   async signOut(): Promise<void> {
     await this.auth.signOut();

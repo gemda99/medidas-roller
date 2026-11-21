@@ -1,0 +1,128 @@
+@if (loading()) {
+  <div class="page" aria-busy="true"><div class="skeleton" style="height:96px"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+} @else if (rect(); as r) {
+  <header class="head">
+    <a routerLink="/rectificaciones" class="back">‹ Rectificaciones</a>
+    <div class="spread">
+      <h1>{{ r.customers?.full_name }}</h1>
+      <span class="chip" [class.draft]="r.status === 'borrador'">{{ r.status === 'borrador' ? 'Borrador' : 'Completa' }}</span>
+    </div>
+    <span class="sub">{{ r.address_line }} · {{ r.comuna }} · visita {{ fmt(r.visit_date) }}</span>
+    <span class="save" aria-live="polite">
+      @switch (saveState()) {
+        @case ('saving') { Guardando… }
+        @case ('saved') { Guardado }
+        @case ('offline') { Sin señal: guardado en el teléfono. <button type="button" (click)="retrySave()">Reintentar</button> }
+        @case ('error') { No se pudo guardar. <button type="button" (click)="retrySave()">Reintentar</button> }
+      }
+    </span>
+  </header>
+
+  <div class="page">
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
+
+    <section class="card stack">
+      <button type="button" class="toggle" (click)="showGeneral.set(!showGeneral())" [attr.aria-expanded]="showGeneral()">
+        <strong>Datos generales</strong><span class="muted">{{ showGeneral() ? 'Ocultar' : 'Ver y editar' }}</span>
+      </button>
+      @if (showGeneral()) {
+        <form [formGroup]="general" class="stack" (submit)="$event.preventDefault()">
+          <div class="two">
+            <div class="field"><label for="visit">Fecha de visita</label><input id="visit" type="date" formControlName="visit_date" /></div>
+            <div class="field"><label for="inst">Fecha de instalación</label><input id="inst" type="date" formControlName="installation_date" /></div>
+          </div>
+          <div class="field"><label for="obs">Observaciones</label><textarea id="obs" formControlName="observations"></textarea></div>
+          <fieldset class="conf">
+            <legend>Conformidad del cliente</legend>
+            <label><input type="checkbox" formControlName="explained_light_entry" /> Se explicó la entrada de luz</label>
+            <label><input type="checkbox" formControlName="explained_fabric_position" /> Se explicó la posición de telas</label>
+            <label><input type="checkbox" formControlName="explained_side_measure" /> Se explicó la medida de los costados</label>
+          </fieldset>
+          <span class="muted">Ejecutivo: {{ r.executive_name }}</span>
+        </form>
+      }
+    </section>
+
+    @for (l of r.locations; track l.id; let first = $first; let last = $last) {
+      <section class="loc">
+        <div class="loc-head">
+          @if (renaming() === l.id) {
+            <input class="rename" [value]="renameValue()" (input)="renameValue.set($any($event.target).value)"
+                   (keydown.enter)="saveRename(l)" (keydown.escape)="renaming.set(null)" aria-label="Nombre de la ubicación" />
+            <button type="button" class="btn btn-primary" (click)="saveRename(l)">Guardar</button>
+          } @else {
+            <strong class="loc-name">{{ l.name }}</strong>
+            <span class="muted">{{ l.curtains.length }} {{ l.curtains.length === 1 ? 'cortina' : 'cortinas' }}</span>
+            @if (!locked()) {
+            <span class="tools">
+              <button type="button" class="btn btn-icon btn-ghost" aria-label="Subir ubicación" [disabled]="first || busy()" (click)="move(l, -1)"><svg lucideArrowUp [size]="18" aria-hidden="true"></svg></button>
+              <button type="button" class="btn btn-icon btn-ghost" aria-label="Bajar ubicación" [disabled]="last || busy()" (click)="move(l, 1)"><svg lucideArrowDown [size]="18" aria-hidden="true"></svg></button>
+              <button type="button" class="btn btn-icon btn-ghost" aria-label="Renombrar ubicación" (click)="startRename(l)"><svg lucidePencil [size]="18" aria-hidden="true"></svg></button>
+              <button type="button" class="btn btn-icon btn-ghost danger" aria-label="Eliminar ubicación" (click)="ask({ kind: 'location', location: l })"><svg lucideTrash2 [size]="18" aria-hidden="true"></svg></button>
+            </span>
+            }
+          }
+        </div>
+
+        @for (c of l.curtains; track c.id) {
+          <div class="curtain">
+            <a class="curtain-link" [routerLink]="['/rectificaciones', r.id, 'cortinas', c.id]">
+              <strong>{{ productName(c) }}</strong>
+              <span class="muted">{{ summary(c) }}</span>
+              @if (c.notes) { <span class="note">Nota: {{ c.notes }}</span> }
+            </a>
+            @if (!locked()) {
+            <span class="tools">
+              <button type="button" class="btn btn-icon btn-ghost" aria-label="Duplicar cortina" [disabled]="busy()" (click)="duplicate(c)"><svg lucideCopy [size]="18" aria-hidden="true"></svg></button>
+              <button type="button" class="btn btn-icon btn-ghost danger" aria-label="Eliminar cortina" (click)="ask({ kind: 'curtain', curtain: c })"><svg lucideTrash2 [size]="18" aria-hidden="true"></svg></button>
+            </span>
+            }
+          </div>
+        }
+        @if (!locked()) {
+        <a class="add" [routerLink]="['/rectificaciones', r.id, 'cortinas', 'nueva']" [queryParams]="{ ubicacion: l.id }">
+          <svg lucidePlus [size]="18" aria-hidden="true"></svg> Agregar cortina en {{ l.name }}
+        </a>
+        }
+      </section>
+    }
+
+    @if (!locked()) {
+    <section class="card stack">
+      <h2>{{ r.locations.length ? 'Agregar ubicación' : 'Primera ubicación' }}</h2>
+      <div class="chips">
+        @for (q of quick; track q) {
+          <button type="button" class="qchip" [disabled]="busy()" (click)="addLocation(q)">{{ q }}</button>
+        }
+      </div>
+      <form class="row" (submit)="$event.preventDefault(); addLocation()">
+        <label for="newloc" class="sr-only">Otra ubicación</label>
+        <input id="newloc" class="grow" placeholder="Otra: Hab. 3, Terraza…" [value]="newLocation()" (input)="newLocation.set($any($event.target).value)" />
+        <button type="submit" class="btn btn-primary" [disabled]="busy() || !newLocation().trim()">Agregar</button>
+      </form>
+    </section>
+    }
+
+    @if (completeIssues().length) {
+      <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
+    }
+
+    <div class="stack">
+      @if (r.status === 'borrador') {
+        <button type="button" class="btn btn-primary btn-block" [disabled]="busy()" (click)="complete()">Marcar como completa · {{ curtainCount() }} cortinas</button>
+      } @else {
+        <button type="button" class="btn btn-block" [disabled]="busy()" (click)="reopen()">Volver a borrador para editar</button>
+      }
+      <a class="btn btn-block" [routerLink]="['/clientes', r.customer_id]">Ver cliente</a>
+      @if (canDelete()) {
+        <button type="button" class="btn btn-danger btn-block" (click)="ask({ kind: 'rectification' })">Eliminar rectificación</button>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="page">
+    <div class="alert alert-error" role="alert">{{ error() }} <button type="button" class="btn btn-ghost" (click)="load()">Reintentar</button></div>
+  </div>
+}
+
+<app-confirm-dialog [title]="confirmTitle()" [message]="confirmMessage()" (confirmed)="onConfirmed()" />

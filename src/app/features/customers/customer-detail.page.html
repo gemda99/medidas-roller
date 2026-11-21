@@ -68,9 +68,28 @@
       }
     </section>
 
-    <section class="card stack">
-      <h2>Trabajos</h2>
-      <p class="muted" style="margin:0">Las rectificaciones de este cliente aparecerán aquí desde el Sprint 2.</p>
+    <section class="stack">
+      <div class="spread">
+        <h2>Trabajos</h2>
+        <a class="btn btn-primary" [routerLink]="['/rectificaciones/nueva']" [queryParams]="{ cliente: c.id }">Nueva rectificación</a>
+      </div>
+      @if (works().length === 0) {
+        <div class="card"><p class="muted" style="margin:0">Sin rectificaciones todavía.</p></div>
+      } @else {
+        <ul class="list">
+          @for (w of works(); track w.id) {
+            <li>
+              <a class="list-item" [routerLink]="['/rectificaciones', w.id]">
+                <span class="stack" style="gap:2px">
+                  <strong>{{ w.address_line }} · {{ w.comuna }}</strong>
+                  <span class="muted">Visita {{ fmt(w.visit_date) }} · {{ w.executive_name }}</span>
+                </span>
+                <span class="chip">{{ w.status === 'borrador' ? 'Borrador' : 'Completa' }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
     </section>
 
     @if (auth.isAdmin()) {

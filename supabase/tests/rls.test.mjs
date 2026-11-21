@@ -4,70 +4,13 @@
 // Ejecutar: npm run test:db
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { PGlite } from '@electric-sql/pglite';
-
-const here = dirname(fileURLToPath(import.meta.url));
-const migrationsDir = join(here, '..', 'migrations');
-
-const ADMIN = '00000000-0000-0000-0000-00000000000a';
-const MEDIDOR = '00000000-0000-0000-0000-00000000000b';
-const INACTIVO = '00000000-0000-0000-0000-00000000000c';
+import { setupDb, rejects, ADMIN, MEDIDOR, INACTIVO } from './harness.mjs';
 
 let db;
-
-const SUPABASE_SHIM = `
-  create role anon nologin;
-  create role authenticated nologin;
-  create schema auth;
-  create table auth.users (
-    id uuid primary key,
-    email text,
-    raw_user_meta_data jsonb default '{}'::jsonb
-  );
-  create function auth.uid() returns uuid language sql stable as $$
-    select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
-  $$;
-  grant usage on schema auth to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
-`;
-
-const GRANTS = `
-  grant usage on schema public to anon, authenticated;
-  grant select, insert, update, delete on all tables in schema public to authenticated;
-  grant execute on all functions in schema public to authenticated;
-`;
-
-/** Ejecuta fn como un usuario autenticado (o anónimo si id es null), en una transacción. */
-async function as(id, fn) {
-  return db.transaction(async (tx) => {
-    await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [id ?? '']);
-    await tx.exec(`set local role ${id ? 'authenticated' : 'anon'}`);
-    return fn(tx);
-  });
-}
-
-async function rejects(promise, pattern) {
-  await assert.rejects(promise, (err) => pattern.test(String(err.message)));
-}
+let as;
 
 before(async () => {
-  db = new PGlite();
-  await db.exec(SUPABASE_SHIM);
-  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort()) {
-    await db.exec(readFileSync(join(migrationsDir, file), 'utf8'));
-  }
-  await db.exec(GRANTS);
-  await db.exec(`
-    insert into auth.users (id, email, raw_user_meta_data) values
-      ('${ADMIN}', 'admin@ejemplo.cl', '{"full_name":"Admin Prueba"}'),
-      ('${MEDIDOR}', 'medidor@ejemplo.cl', '{}'),
-      ('${INACTIVO}', 'inactivo@ejemplo.cl', '{}');
-    update public.profiles set role = 'admin' where id = '${ADMIN}';
-    update public.profiles set active = false where id = '${INACTIVO}';
-  `);
+  ({ db, as } = await setupDb());
 });
 
 test('el trigger crea el perfil como medidor con nombre por defecto', async () => {
@@ -79,7 +22,7 @@ test('un medidor solo ve su propio perfil; el admin ve todos', async () => {
   const mine = await as(MEDIDOR, (tx) => tx.query(`select id from public.profiles`));
   assert.equal(mine.rows.length, 1);
   const all = await as(ADMIN, (tx) => tx.query(`select id from public.profiles`));
-  assert.equal(all.rows.length, 3);
+  assert.equal(all.rows.length, 4);
 });
 
 test('un medidor no puede subirse a administrador', async () => {

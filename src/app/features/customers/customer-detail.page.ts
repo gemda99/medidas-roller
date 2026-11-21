@@ -5,6 +5,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucidePencil, LucidePhone, LucidePlus, LucideStar, LucideTrash2 } from '@lucide/angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { CustomerRepository } from '../../data-access/repositories/customer.repository';
+import { RectificationRepository } from '../../data-access/repositories/rectification.repository';
+import { RectificationSummary } from '../../domain/models/rectification';
+import { formatDate } from '../../shared/format';
 import { COMUNAS_RM } from '../../domain/comunas';
 import { CustomerAddress, CustomerWithAddresses } from '../../domain/models/customer';
 import { ConfirmDialog } from '../../shared/components/confirm-dialog';
@@ -23,6 +26,10 @@ export class CustomerDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
+  private readonly rectifications = inject(RectificationRepository);
+  readonly fmt = formatDate;
+  /** Rectificaciones del cliente visibles para este usuario (RLS: el medidor ve solo las suyas). */
+  readonly works = signal<RectificationSummary[]>([]);
 
   readonly comunas = COMUNAS_RM;
   readonly id = this.route.snapshot.paramMap.get('id')!;
@@ -52,7 +59,12 @@ export class CustomerDetailPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.customer.set(await this.repo.getById(this.id));
+      const [c, works] = await Promise.all([
+        this.repo.getById(this.id),
+        this.rectifications.list({ customerId: this.id, limit: 50 }),
+      ]);
+      this.customer.set(c);
+      this.works.set(works);
     } catch (e) {
       this.error.set(toUserMessage(e));
     } finally {

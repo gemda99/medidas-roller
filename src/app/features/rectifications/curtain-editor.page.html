@@ -1,0 +1,155 @@
+<div class="top">
+  <a [routerLink]="['/rectificaciones', rectId]" class="back">‹ Volver</a>
+  <strong>{{ isNew ? 'Nueva cortina' : 'Editar cortina' }}</strong>
+</div>
+
+@if (loading()) {
+  <div class="page" aria-busy="true"><div class="skeleton" style="height:120px"></div><div class="skeleton"></div></div>
+} @else if (catalog()) {
+  <form class="page" [formGroup]="form" (submit)="$event.preventDefault(); save(false)" novalidate>
+    @if (flash()) { <div class="alert alert-ok" role="status">{{ flash() }}</div> }
+    @if (restored()) {
+      <div class="alert alert-warn" role="status">
+        Se recuperó lo que habías escrito sin guardar.
+        <button type="button" class="link" (click)="discardDraft()">Descartar</button>
+      </div>
+    }
+    @if (locked()) {
+      <div class="alert alert-warn" role="alert">La rectificación está completa. Vuelve a borrador para editarla.</div>
+    }
+    @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
+
+    <div class="field">
+      <label for="loc">Ubicación</label>
+      <select id="loc" formControlName="location_id">
+        @for (l of locations(); track l.id) { <option [value]="l.id">{{ l.name }}</option> }
+      </select>
+      @if (issue('location')) { <span class="error">{{ issue('location') }}</span> }
+    </div>
+
+    <div class="field">
+      <span class="lbl" id="prod-lbl">Producto</span>
+      <div class="chips" role="radiogroup" aria-labelledby="prod-lbl">
+        @for (p of products(); track p.id) {
+          <button type="button" role="radio" class="pchip" [class.on]="productId() === p.id" [attr.aria-checked]="productId() === p.id"
+                  [attr.title]="p.name" (click)="selectProduct(p)">{{ p.code }}</button>
+        }
+      </div>
+      @if (product(); as p) { <span class="hint">{{ p.name }}@if (!p.fabricated) { · lo fabrica un proveedor externo }</span> }
+      @if (issue('product')) { <span class="error">{{ issue('product') }}</span> }
+      @if (issue('components')) { <span class="error">{{ issue('components') }}</span> }
+    </div>
+
+    @for (c of components.controls; track $index; let i = $index) {
+      <section class="card stack comp" [formGroup]="c">
+        <div class="spread"><strong>{{ label(c.controls.role.value) }}</strong><span class="muted">medidas en cm</span></div>
+        <div class="two">
+          <div class="field">
+            <label [for]="'w' + i">Ancho</label>
+            <input [id]="'w' + i" class="big" inputmode="decimal" autocomplete="off" formControlName="width_cm"
+                   [class.invalid]="issue('components.' + i + '.width_cm')" />
+          </div>
+          <div class="field">
+            <label [for]="'h' + i">Alto</label>
+            <input [id]="'h' + i" class="big" inputmode="decimal" autocomplete="off" formControlName="height_cm"
+                   [class.invalid]="issue('components.' + i + '.height_cm')" />
+          </div>
+        </div>
+        @if (issue('components.' + i + '.width_cm') || issue('components.' + i + '.height_cm')) {
+          <span class="error">{{ issue('components.' + i + '.width_cm') ?? issue('components.' + i + '.height_cm') }}</span>
+        }
+        <div class="field">
+          <label [for]="'col' + i">Color</label>
+          <input [id]="'col' + i" formControlName="color_name" list="colores" autocomplete="off" placeholder="Ej.: Beige-3" />
+        </div>
+        <label class="check"><input type="checkbox" formControlName="motorized" /> Motor en esta tela</label>
+      </section>
+    }
+    <datalist id="colores">@for (col of catalog()!.colors; track col.id) { <option [value]="col.name"></option> }</datalist>
+
+    <div class="field">
+      <span class="lbl">Superficie</span>
+      <app-segmented formControlName="surface" [options]="surfaces" label="Superficie" [clearable]="true" />
+      @if (form.controls.surface.value === 'otro') {
+        <input formControlName="surface_other" placeholder="¿Cuál?" aria-label="Otra superficie" [class.invalid]="issue('surface_other')" />
+        @if (issue('surface_other')) { <span class="error">{{ issue('surface_other') }}</span> }
+      }
+    </div>
+
+    <div class="field">
+      <span class="lbl">Instalación</span>
+      <app-segmented formControlName="mounting" [options]="mountings" label="Instalación" [clearable]="true" />
+    </div>
+
+    <div class="two">
+      <div class="field">
+        <span class="lbl">Caída de tela</span>
+        <app-segmented formControlName="fall" [options]="falls" label="Caída de tela" [clearable]="true" />
+      </div>
+      <div class="field">
+        <span class="lbl">Lado cadena</span>
+        <app-segmented formControlName="chain_side" [options]="sides" label="Lado de la cadena" [clearable]="true" />
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl">Largo de cadena <span class="muted">(vacío si no lleva)</span></span>
+      <app-segmented formControlName="chain_length" [options]="chains" label="Largo de cadena" [clearable]="true" />
+      @if (form.controls.chain_length.value === 'otro') {
+        <input formControlName="chain_other" inputmode="decimal" placeholder="Metros, ej.: 2,5" aria-label="Largo de cadena en metros"
+               [class.invalid]="issue('chain_length_m')" />
+      }
+      @if (issue('chain_length_m')) { <span class="error">{{ issue('chain_length_m') }}</span> }
+    </div>
+
+    @if (product(); as p) {
+      <section class="card stack">
+        <strong>Extras</strong>
+        @if (p.cenefa_mode === 'opcional') {
+          <label class="check"><input type="checkbox" formControlName="has_cenefa" /> Cenefa <span class="muted">· se cobra por metro de ancho</span></label>
+        } @else if (p.cenefa_mode === 'incluida') {
+          <span class="muted">Cenefa incluida en este producto.</span>
+        }
+        @for (o of p.product_options; track o.id) {
+          @if (o.active) {
+            <label class="check">
+              <input type="checkbox" [checked]="form.controls.option_ids.value.includes(o.id)" (change)="toggleOption(o.id)" /> {{ o.name }}
+            </label>
+          }
+        }
+        @for (a of cortinaAccessories(); track a.id) {
+          <div class="spread">
+            <span>{{ a.name }}</span>
+            <span class="stepper">
+              <button type="button" class="btn btn-icon" [attr.aria-label]="'Quitar ' + a.name" (click)="bump(a.id, -1)">−</button>
+              <strong aria-live="polite">{{ qty(a.id) }}</strong>
+              <button type="button" class="btn btn-icon" [attr.aria-label]="'Agregar ' + a.name" (click)="bump(a.id, 1)">+</button>
+            </span>
+          </div>
+        }
+      </section>
+    }
+
+    <div class="field">
+      <label for="label">Nombre o identificación <span class="muted">(opcional)</span></label>
+      <input id="label" formControlName="label" placeholder="Ej.: Ventana izquierda" />
+    </div>
+    <div class="field">
+      <label for="notes">Nota</label>
+      <textarea id="notes" formControlName="notes" placeholder="Medida alternativa, contrapeso, «bien arriba»…"></textarea>
+    </div>
+    <p class="hint">Las fotos se agregan desde el Sprint 3.</p>
+
+    <div class="bar">
+      @if (!isNew) {
+        <button type="button" class="btn btn-danger" [disabled]="saving() || locked()" (click)="askDelete()">Eliminar</button>
+      }
+      <button type="button" class="btn" [disabled]="saving() || locked()" (click)="save(true)">Guardar y otra</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || locked()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
+    </div>
+  </form>
+} @else {
+  <div class="page"><div class="alert alert-error" role="alert">{{ error() }}</div></div>
+}
+
+<app-confirm-dialog title="¿Eliminar esta cortina?" message="No se puede deshacer." (confirmed)="onDelete()" />
