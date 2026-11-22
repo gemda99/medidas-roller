@@ -13,7 +13,7 @@ import { AuthService } from '../auth/auth.service';
   template: `
     <div class="layout">
       <nav class="side" aria-label="Menú principal">
-        <div class="brand">Medidas Roller</div>
+        <div class="brand"><img src="logo-96.png" alt="" width="32" height="32" class="brand-logo" />Medidas Roller</div>
         <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
           <svg lucideHouse [size]="20" aria-hidden="true"></svg> Inicio
         </a>
