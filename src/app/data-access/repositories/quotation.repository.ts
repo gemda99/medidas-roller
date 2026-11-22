@@ -1,3 +1,4 @@
+import { WorkSnapshot } from '../../domain/confection/work-snapshot';
 import { inject, Injectable } from '@angular/core';
 import { SUPABASE } from '../supabase/supabase.client';
 import { CustomerSnapshot, Quotation, QuotationStatus, QuotationSummary } from '../../domain/models/quotation';
@@ -16,6 +17,8 @@ export interface SaveQuotationInput {
   adjustment_reason: string | null;
   customer_snapshot: CustomerSnapshot;
   pricing_snapshot: PricingSnapshot;
+  /** Copia del trabajo con que se calculó (confección e instalación salen de aquí). */
+  work_snapshot: WorkSnapshot;
 }
 
 /** Cotizaciones. Los montos vienen del motor; la base valida coherencia y permisos. */
@@ -83,7 +86,11 @@ export class QuotationRepository {
     };
     const { data, error } = await this.db.rpc('save_quotation', { p });
     if (error) throw error;
-    return data as { id: string; number: string };
+    const saved = data as { id: string; number: string };
+    // La copia del trabajo va aparte: la cotización sigue en borrador, así que se puede escribir.
+    const ws = await this.db.from('quotations').update({ work_snapshot: input.work_snapshot }).eq('id', saved.id);
+    if (ws.error) throw ws.error;
+    return saved;
   }
 
   async setStatus(id: string, status: QuotationStatus): Promise<void> {

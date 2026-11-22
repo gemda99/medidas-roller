@@ -43,5 +43,3 @@
 .grow { flex: 1; min-height: 48px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 0 12px; font: 16px Inter, sans-serif; }
 .row form, form.row { flex-wrap: nowrap; }
 .sig-img { max-width: 320px; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-.docs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.docs .btn { padding-inline: 8px; text-align: center; }

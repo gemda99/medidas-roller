@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { ConfectionCurtain } from '../../domain/confection/confection-engine';
 import { ConfectionRow } from '../../domain/confection/confection-pages';
 import { BusinessSettings } from '../../domain/models/business';
-import { Rectification } from '../../domain/models/rectification';
+import { JobInfo } from '../../domain/confection/work-snapshot';
 import { formatDate } from '../../shared/format';
 
 /**
@@ -12,7 +12,7 @@ import { formatDate } from '../../shared/format';
 @Component({
   selector: 'app-confection-sheet',
   template: `
-    @let r = rect();
+    @let r = job();
     @let b = business();
     <article class="sheet" [style.--accent]="b.accent_color || '#0F2A4A'">
       <header class="head">
@@ -28,16 +28,16 @@ import { formatDate } from '../../shared/format';
 
       <div class="band">
         <span class="title">CONFECCIÓN</span>
-        <span class="meta">{{ r.customers?.full_name }}<span class="sep"></span>{{ total() }} cortinas</span>
+        <span class="meta">{{ r.customer_name }}<span class="sep"></span>{{ total() }} cortinas</span>
       </div>
 
       @if (first()) {
         <section class="boxes">
           <div class="box">
             <div class="cap">Cliente</div>
-            <div class="kv"><span>Nombre</span><strong>{{ r.customers?.full_name }}</strong></div>
-            <div class="kv"><span>Dirección</span><span>{{ address() }}</span></div>
-            @if (r.customers?.phone) { <div class="kv"><span>Teléfono</span><span>{{ r.customers?.phone }}</span></div> }
+            <div class="kv"><span>Nombre</span><strong>{{ r.customer_name }}</strong></div>
+            <div class="kv"><span>Dirección</span><span>{{ r.address }}</span></div>
+            @if (r.phone) { <div class="kv"><span>Teléfono</span><span>{{ r.phone }}</span></div> }
           </div>
           <div class="box tinted">
             <div class="cap">Trabajo</div>
@@ -156,7 +156,7 @@ import { formatDate } from '../../shared/format';
   `,
 })
 export class ConfectionSheetComponent {
-  readonly rect = input.required<Rectification>();
+  readonly job = input.required<JobInfo>();
   readonly business = input.required<BusinessSettings>();
   readonly logo = input<string | null>(null);
   readonly rows = input.required<ConfectionRow[]>();
@@ -166,7 +166,6 @@ export class ConfectionSheetComponent {
 
   readonly first = computed(() => this.pageIndex() === 0);
   readonly last = computed(() => this.pageIndex() === this.pageCount() - 1);
-  readonly address = computed(() => [this.rect().address_line, this.rect().comuna].filter(Boolean).join(', '));
   readonly footerLine = computed(() => {
     const b = this.business();
     return ['Hoja de confección', b.business_name].filter(Boolean).join('  ·  ');

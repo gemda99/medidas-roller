@@ -21,7 +21,7 @@ const TREE = `${SUMMARY},
       curtain_components(id, role, product_id, color_name, width_cm, height_cm, fall, motorized),
       curtain_options(product_option_id),
       curtain_accessories(accessory_id, quantity),
-      curtain_photos(id)))`;
+      curtain_photos(id, storage_path)))`;
 
 export interface NewRectification {
   customer_id: string;

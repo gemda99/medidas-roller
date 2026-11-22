@@ -135,18 +135,6 @@
       }
     </section>
 
-    @if (curtainCount() > 0) {
-      <section class="card stack">
-        <h2>Documentos</h2>
-        <p class="muted" style="margin:0">Imágenes sin precios para la fábrica y el instalador, o todo en un ZIP.</p>
-        <div class="docs">
-          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'confeccion' }">Confección</a>
-          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'guia' }">Guía instalador</a>
-          <a class="btn" [routerLink]="['/rectificaciones', r.id, 'documentos']" [queryParams]="{ ver: 'zip' }">Todo (ZIP)</a>
-        </div>
-      </section>
-    }
-
     <!-- Conformidad del cliente: casillas + firma en un solo bloque, como en la hoja física. -->
     <section class="card stack" aria-labelledby="conf-title">
       <h2 id="conf-title">Conformidad del cliente</h2>

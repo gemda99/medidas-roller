@@ -22,6 +22,7 @@ before(async () => {
     total_final: 246425, customer_snapshot: {}, pricing_snapshot: {}, lines: [],
   };
   quote = (await as(MEDIDOR, (tx) => tx.query(`select public.save_quotation($1) as r`, [JSON.stringify(p)]))).rows[0].r.id;
+  await as(MEDIDOR, (tx) => tx.query(`update public.quotations set work_snapshot = '{"curtains":[]}' where id = $1`, [quote]));
 });
 
 test('configuración: todos la leen, solo el admin la cambia; sin datos de empresa fijos', async () => {

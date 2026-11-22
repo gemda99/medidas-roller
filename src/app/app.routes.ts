@@ -72,11 +72,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/rectifications/curtain-editor.page').then((m) => m.CurtainEditorPage),
       },
       {
-        path: 'rectificaciones/:id/documentos',
-        title: 'Documentos · Medidas Roller',
-        loadComponent: () => import('./features/rectifications/documents.page').then((m) => m.DocumentsPage),
-      },
-      {
         path: 'rectificaciones/:id/cotizaciones/nueva',
         title: 'Nueva cotización · Medidas Roller',
         loadComponent: () => import('./features/quotations/quotation-editor.page').then((m) => m.QuotationEditorPage),

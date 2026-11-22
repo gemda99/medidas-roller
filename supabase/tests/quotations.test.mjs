@@ -80,6 +80,7 @@ test('ajuste manual: solo el administrador, y queda registrado', async () => {
 
 test('una cotización emitida no cambia: ni montos ni líneas; solo pasa a aceptada o rechazada', async () => {
   const r = await save(MEDIDOR, payload());
+  await as(MEDIDOR, (tx) => tx.query(`update public.quotations set work_snapshot = '{"curtains":[]}' where id = $1`, [r.id]));
   await as(MEDIDOR, (tx) => tx.query(`update public.quotations set status = 'emitida', issued_at = now() where id = $1`, [r.id]));
   await rejects(save(MEDIDOR, payload({ id: r.id })), /ya fue emitida/);
   await rejects(as(MEDIDOR, (tx) => tx.query(`delete from public.quotation_items where quotation_id = $1`, [r.id])), /ya fue emitida/);

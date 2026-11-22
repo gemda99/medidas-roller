@@ -1,3 +1,4 @@
+import { WorkSnapshot } from '../confection/work-snapshot';
 import { BusinessSettings } from './business';
 import { DiscountType, InstallationMode, IvaMode, PricingSnapshot, QuoteLine, QuoteOptions } from '../pricing/pricing-engine';
 
@@ -48,6 +49,8 @@ export interface Quotation extends QuotationSummary {
   customer_snapshot: CustomerSnapshot;
   pricing_snapshot: PricingSnapshot;
   business_snapshot: BusinessSettings | null;
+  /** Copia del trabajo (cortinas, fotos, firma) para confección e instalación. */
+  work_snapshot: WorkSnapshot | null;
   quotation_items: QuotationItem[];
 }
 

@@ -5,6 +5,8 @@ import { BusinessSettings, EMPTY_BUSINESS } from '../../domain/models/business';
 const BRANDING = 'branding';
 const DOCUMENTS = 'documents';
 
+export type DocumentKind = 'cotizacion' | 'confeccion' | 'instalacion';
+
 export interface StoredDocument {
   id: string;
   page: number;
@@ -46,7 +48,7 @@ export class BusinessRepository {
     return blobToDataUrl(data);
   }
 
-  async listDocuments(quotationId: string, kind: 'cotizacion' | 'confeccion' = 'cotizacion'): Promise<StoredDocument[]> {
+  async listDocuments(quotationId: string, kind: DocumentKind = 'cotizacion'): Promise<StoredDocument[]> {
     const { data, error } = await this.db
       .from('generated_documents')
       .select('id, page, page_count, storage_path')
@@ -75,7 +77,7 @@ export class BusinessRepository {
   async saveDocuments(
     rectificationId: string,
     quotationId: string,
-    kind: 'cotizacion' | 'confeccion',
+    kind: DocumentKind,
     pages: Blob[],
   ): Promise<string[]> {
     const stamp = Date.now();

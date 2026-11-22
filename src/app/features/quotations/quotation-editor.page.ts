@@ -1,3 +1,4 @@
+import { buildWorkSnapshot } from '../../domain/confection/work-snapshot';
 import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -305,6 +306,9 @@ export class QuotationEditorPage implements OnInit {
     this.busy.set(true);
     this.error.set(null);
     try {
+      const rect = this.rect();
+      if (!rect) return;
+      const work = buildWorkSnapshot(rect, await this.catalog.load());
       const r = await this.quotes.save({
         id: this.saved()?.id,
         rectification_id: this.rectId(),
@@ -316,6 +320,7 @@ export class QuotationEditorPage implements OnInit {
         adjustment_reason: this.reason().trim() || null,
         customer_snapshot: cust,
         pricing_snapshot: snap,
+        work_snapshot: work,
       });
       if (!this.saved()) {
         await this.router.navigate(['/cotizaciones', r.id], { replaceUrl: true });
@@ -359,6 +364,8 @@ export class QuotationEditorPage implements OnInit {
     try {
       await this.quotes.setStatus(q.id, status);
       this.saved.set(await this.quotes.get(q.id));
+      // Aceptada: se crean la confección y la guía del instalador con las medidas de esta cotización.
+      if (status === 'aceptada') await this.router.navigate(['/cotizaciones', q.id, 'imagen']);
     } catch (e) {
       this.error.set(toUserMessage(e));
     } finally {

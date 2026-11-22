@@ -18,11 +18,12 @@ Angular 22 (standalone, signals, zoneless) · Supabase (Auth, PostgreSQL con RLS
 | 4 · Motor y cotización | Probado y aprobado por Gabriel. |
 | 5 · Imagen PNG y compartir | Probado y aprobado por Gabriel (diseño ajustado, garantía detallada, letra Inter incluida). |
 | 6 · Confección | Código y pruebas automáticas en verde; falta aplicar `aplicar_sprint6.sql` y probar. |
-| 6b · Firma, RUT, guía del instalador y ZIP | Código y pruebas automáticas en verde (116 unitarias, 55 de base de datos); falta aplicar `aplicar_rut_firma.sql` y probar. |
+| 6b · Firma, RUT, guía del instalador y ZIP | Probado por Gabriel en varios dispositivos (pendiente un iPhone remoto). |
+| 6c · Confección e instalación desde la cotización aceptada | Código y pruebas automáticas en verde (119 unitarias, 57 de base de datos); falta aplicar `aplicar_cotizacion_aceptada.sql` y probar. |
 
 ### Aplicar migraciones nuevas en Supabase
 
-Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`, `aplicar_sprint4.sql`, `aplicar_sprint5.sql`, `aplicar_sprint5_garantia.sql`, `aplicar_sprint6.sql`, `aplicar_rut_firma.sql`.
+Cada sprint trae archivos nuevos en `supabase/migrations/` y un archivo `supabase/aplicar_*.sql` listo para copiar y pegar en Supabase › Editor SQL › nueva consulta › Correr (una sola vez cada uno, en orden): `aplicar_sprint2.sql`, `aplicar_sprint2_ajustes.sql`, `aplicar_sprint3.sql`, `aplicar_sprint4.sql`, `aplicar_sprint5.sql`, `aplicar_sprint5_garantia.sql`, `aplicar_sprint6.sql`, `aplicar_rut_firma.sql`, `aplicar_cotizacion_aceptada.sql`.
 
 ## Puesta en marcha (una sola vez)
 

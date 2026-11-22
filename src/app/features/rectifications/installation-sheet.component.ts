@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { ConfectionCurtain } from '../../domain/confection/confection-engine';
 import { GuideRow } from '../../domain/confection/installation-pages';
 import { BusinessSettings } from '../../domain/models/business';
-import { Rectification } from '../../domain/models/rectification';
+import { JobInfo } from '../../domain/confection/work-snapshot';
 import { formatDate } from '../../shared/format';
 import { formatRut } from '../../shared/validation/rut';
 
@@ -13,7 +13,7 @@ import { formatRut } from '../../shared/validation/rut';
 @Component({
   selector: 'app-installation-sheet',
   template: `
-    @let r = rect();
+    @let r = job();
     @let b = business();
     <article class="sheet" [style.--accent]="b.accent_color || '#0F2A4A'">
       <header class="head">
@@ -36,10 +36,10 @@ import { formatRut } from '../../shared/validation/rut';
         <section class="boxes">
           <div class="box">
             <div class="cap">Cliente</div>
-            <div class="big">{{ r.customers?.full_name }}</div>
-            <div>{{ address() }}</div>
+            <div class="big">{{ r.customer_name }}</div>
+            <div>{{ r.address }}</div>
             @if (r.address_reference) { <div class="muted">Ref.: {{ r.address_reference }}</div> }
-            @if (r.customers?.phone) { <div class="phone">{{ r.customers?.phone }}</div> }
+            @if (r.phone) { <div class="phone">{{ r.phone }}</div> }
           </div>
           <div class="box tinted">
             <div class="cap">Trabajo</div>
@@ -162,7 +162,7 @@ import { formatRut } from '../../shared/validation/rut';
   `,
 })
 export class InstallationSheetComponent {
-  readonly rect = input.required<Rectification>();
+  readonly job = input.required<JobInfo>();
   readonly business = input.required<BusinessSettings>();
   readonly logo = input<string | null>(null);
   readonly signature = input<string | null>(null);
@@ -173,7 +173,6 @@ export class InstallationSheetComponent {
 
   readonly first = computed(() => this.pageIndex() === 0);
   readonly last = computed(() => this.pageIndex() === this.pageCount() - 1);
-  readonly address = computed(() => [this.rect().address_line, this.rect().comuna].filter(Boolean).join(', '));
 
   date(iso: string | null): string {
     return formatDate(iso);
