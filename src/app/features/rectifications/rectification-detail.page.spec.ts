@@ -79,4 +79,28 @@ describe('RectificationDetailPage', () => {
     expect(el.textContent).toContain('COT-2026-0001');
     expect(el.textContent).toContain('$246.425');
   });
+
+  it('las casillas de conformidad y la firma están en el mismo bloque, con el nombre del cliente', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [RectificationDetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: CatalogRepository, useValue: { load: () => Promise.resolve(catalog) } },
+        { provide: RectificationRepository, useValue: { get: () => Promise.resolve(structuredClone(rect)), signatureDataUrl: () => Promise.resolve(null) } },
+        { provide: QuotationRepository, useValue: { listByRectification: () => Promise.resolve([]) } },
+        { provide: AuthService, useValue: { isAdmin: signal(false) } },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'R' }) } } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(RectificationDetailPage);
+    fixture.detectChanges();
+    for (let i = 0; i < 50 && fixture.componentInstance.loading(); i++) await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    const block = (fixture.nativeElement as HTMLElement).querySelector('section[aria-labelledby="conf-title"]')!;
+    expect(block.textContent).toContain('Se explicó la posición de telas');
+    expect(block.querySelector('app-signature-pad')).toBeTruthy();
+    expect(block.textContent).toContain('Firmar y completar');
+    expect((block.querySelector('#sname') as HTMLInputElement).value).toBe('Cliente');
+  });
 });

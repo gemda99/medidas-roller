@@ -63,7 +63,11 @@ export class RectificationDetailPage implements OnInit {
   readonly renaming = signal<string | null>(null);
   readonly renameValue = signal('');
   readonly pending = signal<Pending | null>(null);
-  readonly completeIssues = signal<string[]>([]);
+  /** Lo que falta para poder completar (cortinas sin medidas, ubicaciones vacías, etc.). */
+  readonly completeIssues = computed(() => {
+    const r = this.rect();
+    return r && r.status === 'borrador' ? completionIssues(r.locations) : [];
+  });
 
   readonly curtainCount = computed(() => this.rect()?.locations.reduce((n, l) => n + l.curtains.length, 0) ?? 0);
   readonly locked = computed(() => this.rect()?.status === 'completa');
@@ -74,7 +78,6 @@ export class RectificationDetailPage implements OnInit {
   private readonly pad = viewChild<SignaturePad>('pad');
 
   // ---- Firma de conformidad ----
-  readonly signing = signal(false);
   readonly signName = signal('');
   readonly signRut = signal('');
   readonly hasSignature = signal(false);
@@ -137,7 +140,13 @@ export class RectificationDetailPage implements OnInit {
 
   private applyRect(r: Rectification, resetForm: boolean): void {
     const prevSig = this.rect()?.signature_path ?? null;
+    const first = !this.rect();
     this.rect.set(r);
+    // Quien firma: por defecto, el cliente de la rectificación.
+    if (first || !this.signName()) {
+      this.signName.set(r.customers?.full_name ?? '');
+      this.signRut.set(r.customers?.rut ? formatRut(r.customers.rut) : '');
+    }
     if (r.signature_path !== prevSig || (r.signature_path && !this.signatureUrl())) {
       this.signatureUrl.set(null);
       if (r.signature_path) void this.repo.signatureDataUrl(r.signature_path).then((u) => this.signatureUrl.set(u));
@@ -247,17 +256,6 @@ export class RectificationDetailPage implements OnInit {
   }
 
   // ---- Estado ----
-  async complete(): Promise<void> {
-    const r = this.rect();
-    if (!r) return;
-    const issues = completionIssues(r.locations);
-    this.completeIssues.set(issues);
-    if (issues.length) return;
-    this.signName.set(r.customers?.full_name ?? '');
-    this.signRut.set(r.customers?.rut ? formatRut(r.customers.rut) : '');
-    this.hasSignature.set(false);
-    this.signing.set(true);
-  }
 
   async signAndComplete(): Promise<void> {
     const pad = this.pad();
@@ -265,12 +263,10 @@ export class RectificationDetailPage implements OnInit {
     const blob = await pad.toBlob();
     const rut = this.signRut().trim() ? normalizeRut(this.signRut()) : null;
     await this.run(() => this.repo.sign(this.id, blob, this.signName().trim(), rut));
-    if (!this.error()) this.signing.set(false);
   }
 
   async completeWithoutSignature(): Promise<void> {
     await this.run(() => this.repo.setStatus(this.id, 'completa'));
-    if (!this.error()) this.signing.set(false);
   }
 
   askReopen(): void {
@@ -279,6 +275,7 @@ export class RectificationDetailPage implements OnInit {
   }
 
   async reopen(): Promise<void> {
+    this.hasSignature.set(false);
     await this.run(() => this.repo.setStatus(this.id, 'borrador'));
   }
 

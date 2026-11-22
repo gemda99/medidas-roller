@@ -32,12 +32,6 @@
             <div class="field"><label for="inst">Fecha de instalación</label><input id="inst" type="date" formControlName="installation_date" /></div>
           </div>
           <div class="field"><label for="obs">Observaciones</label><textarea id="obs" formControlName="observations"></textarea></div>
-          <fieldset class="conf">
-            <legend>Conformidad del cliente</legend>
-            <label><input type="checkbox" formControlName="explained_light_entry" /> Se explicó la entrada de luz</label>
-            <label><input type="checkbox" formControlName="explained_fabric_position" /> Se explicó la posición de telas</label>
-            <label><input type="checkbox" formControlName="explained_side_measure" /> Se explicó la medida de los costados</label>
-          </fieldset>
           <span class="muted">Ejecutivo: {{ r.executive_name }}</span>
         </form>
       }
@@ -153,22 +147,30 @@
       </section>
     }
 
-    @if (completeIssues().length) {
-      <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
-    }
+    <!-- Conformidad del cliente: casillas + firma en un solo bloque, como en la hoja física. -->
+    <section class="card stack" aria-labelledby="conf-title">
+      <h2 id="conf-title">Conformidad del cliente</h2>
+      <form [formGroup]="general" (submit)="$event.preventDefault()">
+        <fieldset class="conf">
+          <legend class="sr-only">Lo que se explicó al cliente</legend>
+          <label><input type="checkbox" formControlName="explained_light_entry" /> Se explicó la entrada de luz</label>
+          <label><input type="checkbox" formControlName="explained_fabric_position" /> Se explicó la posición de telas</label>
+          <label><input type="checkbox" formControlName="explained_side_measure" /> Se explicó la medida de los costados</label>
+        </fieldset>
+      </form>
 
-    @if (r.status === 'completa' && r.signed_at) {
-      <section class="card stack signed">
-        <h2>Conformidad del cliente</h2>
-        @if (signatureUrl()) { <img [src]="signatureUrl()" alt="Firma del cliente" class="sig-img" /> }
-        <p style="margin:0">Firmado por <strong>{{ r.signed_name }}</strong>@if (r.signed_rut) { · RUT {{ r.signed_rut | rut }} } · {{ fmtDateTime(r.signed_at) }}</p>
-      </section>
-    }
-
-    @if (signing()) {
-      <section class="card stack" aria-labelledby="sign-title">
-        <h2 id="sign-title">Firma del cliente</h2>
-        <p class="muted" style="margin:0">El cliente confirma que revisó las {{ curtainCount() }} cortinas registradas: medidas, colores, ubicación y forma de instalación@if (explained().length) {, y que se le explicó {{ explained().join(', ') }}}.</p>
+      @if (r.status === 'completa') {
+        @if (r.signed_at) {
+          @if (signatureUrl()) { <img [src]="signatureUrl()" alt="Firma del cliente" class="sig-img" /> }
+          <p style="margin:0">Firmado por <strong>{{ r.signed_name }}</strong>@if (r.signed_rut) { · RUT {{ r.signed_rut | rut }} } · {{ fmtDateTime(r.signed_at) }}</p>
+        } @else {
+          <p class="muted" style="margin:0">Completada sin firma del cliente.</p>
+        }
+      } @else {
+        <p class="muted" style="margin:0">Al firmar, el cliente confirma que revisó las {{ curtainCount() }} cortinas registradas (medidas, colores, ubicación y forma de instalación) y lo marcado arriba. Firmar completa la rectificación.</p>
+        @if (completeIssues().length) {
+          <div class="alert alert-warn" role="alert">Para completar: {{ completeIssues().join(' ') }}</div>
+        }
         <div class="two">
           <div class="field">
             <label for="sname">Nombre de quien firma</label>
@@ -181,22 +183,15 @@
           </div>
         </div>
         <app-signature-pad #pad (changed)="hasSignature.set($event)" />
-        <button type="button" class="btn btn-primary btn-block" [disabled]="busy() || !canSign()" (click)="signAndComplete()">
-          {{ busy() ? 'Guardando…' : 'Firmar y completar' }}
+        <button type="button" class="btn btn-primary btn-block" [disabled]="busy() || !canSign() || completeIssues().length > 0" (click)="signAndComplete()">
+          {{ busy() ? 'Guardando…' : 'Firmar y completar · ' + curtainCount() + ' cortinas' }}
         </button>
-        <div class="two">
-          <button type="button" class="btn" [disabled]="busy()" (click)="completeWithoutSignature()">Completar sin firma</button>
-          <button type="button" class="btn" [disabled]="busy()" (click)="signing.set(false)">Cancelar</button>
-        </div>
-      </section>
-    }
+        <button type="button" class="btn btn-block" [disabled]="busy() || completeIssues().length > 0" (click)="completeWithoutSignature()">Completar sin firma</button>
+      }
+    </section>
 
     <div class="stack">
-      @if (r.status === 'borrador') {
-        @if (!signing()) {
-          <button type="button" class="btn btn-primary btn-block" [disabled]="busy()" (click)="complete()">Completar y firmar · {{ curtainCount() }} cortinas</button>
-        }
-      } @else {
+      @if (r.status === 'completa') {
         <button type="button" class="btn btn-block" [disabled]="busy()" (click)="askReopen()">Volver a borrador para editar</button>
       }
       <a class="btn btn-block" [routerLink]="['/clientes', r.customer_id]">Ver cliente</a>
