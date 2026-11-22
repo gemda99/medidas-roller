@@ -113,19 +113,22 @@ import { QuoteImagePageComponent } from './quote-image-page.component';
 
         @if (shots().length && q.status !== 'borrador') {
           <section class="card stack">
-            <h2>Todo en un archivo</h2>
-            <p class="muted" style="margin:0">ZIP con la cotización{{ confShots().length ? ', la confección y la guía del instalador' : '' }}.</p>
-            <button type="button" class="btn btn-block" [disabled]="busy() || workBusy()" (click)="makeZip()">Crear ZIP</button>
-            @if (zip(); as z) {
-              <div class="actions">
-                @if (canShareZip()) { <button type="button" class="btn btn-primary btn-block" (click)="shareZip()">Compartir {{ z.name }}</button> }
-                <button type="button" class="btn btn-block" (click)="downloadZip()">Descargar {{ z.name }}</button>
-              </div>
+            <h2>Todo junto</h2>
+            <p class="muted" style="margin:0">La cotización{{ confShots().length ? ', la confección y la guía del instalador' : '' }} en un solo envío.</p>
+            @if (canShareList(allShots())) {
+              <button type="button" class="btn btn-primary btn-block" [disabled]="busy() || workBusy()" (click)="shareList(allShots(), 'Cotización ' + q.number)">
+                Compartir todo · {{ allShots().length }} {{ allShots().length === 1 ? 'imagen' : 'imágenes' }}
+              </button>
             }
+            <button type="button" class="btn btn-block" [disabled]="busy() || workBusy()" (click)="downloadZip()">
+              {{ busy() ? 'Armando el ZIP…' : 'Descargar todo en un ZIP' }}
+            </button>
           </section>
         }
       }
     </div>
+
+    @if (notice()) { <div class="toast" role="status" aria-live="polite">{{ notice() }}</div> }
 
     <!-- Copia a tamaño real, fuera de la pantalla, solo para generar los PNG. -->
     @if (quote(); as q) {
@@ -162,6 +165,8 @@ import { QuoteImagePageComponent } from './quote-image-page.component';
     .pg + .pg { border-top: 8px solid var(--bg); }
     .work h3 { margin: 8px 0 0; font-size: 16px; }
     .two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 50;
+      width: min(92vw, 480px); padding: 12px 16px; border-radius: 12px; background: #142033; color: #fff; font-size: 14px; box-shadow: 0 8px 24px rgb(0 0 0 / 25%); }
     .capture { position: fixed; left: -12000px; top: 0; width: 1080px; pointer-events: none; }
   `,
 })
@@ -203,7 +208,10 @@ export class QuoteImagePage implements OnInit, OnDestroy {
   readonly workBusy = signal(false);
   readonly confShots = signal<PngFile[]>([]);
   readonly guideShots = signal<PngFile[]>([]);
-  readonly zip = signal<{ name: string; blob: Blob } | null>(null);
+  /** Aviso flotante (visible aunque la página esté desplazada). */
+  readonly notice = signal<string | null>(null);
+  private noticeTimer?: ReturnType<typeof setTimeout>;
+  readonly allShots = computed(() => [...this.shots(), ...this.confShots(), ...this.guideShots()]);
   readonly confPages = computed(() => {
     const w = this.work();
     return w ? confectionPages(w.curtains, w.job.observations?.length ?? 0) : [];
@@ -323,19 +331,26 @@ export class QuoteImagePage implements OnInit, OnDestroy {
   canShareList(files: PngFile[]): boolean {
     return canShareFiles(files);
   }
+  /** Comparte; si el navegador no lo permite (p. ej. en el computador), descarga y avisa. */
   async shareList(files: PngFile[], title: string): Promise<void> {
     try {
       await shareFiles(files, title);
     } catch {
-      this.error.set('No se pudo compartir. Descarga las imágenes y envíalas.');
+      downloadFiles(files);
+      this.toast('Este navegador no deja compartir directo: las imágenes se descargaron. Envíalas desde Descargas.');
     }
+  }
+  private toast(msg: string): void {
+    this.notice.set(msg);
+    clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => this.notice.set(null), 6000);
   }
   downloadList(files: PngFile[]): void {
     downloadFiles(files);
   }
 
-  /** ZIP con la cotización y, si está aceptada, la confección y la guía. */
-  async makeZip(): Promise<void> {
+  /** Arma el ZIP (cotización + confección + guía) en el teléfono y lo descarga. */
+  async downloadZip(): Promise<void> {
     const q = this.quote();
     if (!q) return;
     this.busy.set(true);
@@ -346,41 +361,21 @@ export class QuoteImagePage implements OnInit, OnDestroy {
         ...this.guideShots().map((f) => ({ name: `3-${f.name}`, blob: f.blob })),
       ];
       const who = safeName(q.work_snapshot?.job.customer_name ?? q.customer_snapshot.full_name, 'cliente');
-      this.zip.set({ name: `${q.number}-${who}.zip`, blob: await zipFiles(entries) });
+      const blob = await zipFiles(entries);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${q.number}-${who}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      this.toast('ZIP descargado.');
     } catch (e) {
       this.error.set(toUserMessage(e));
     } finally {
       this.busy.set(false);
     }
-  }
-  private zipFile(): File | null {
-    const z = this.zip();
-    return z ? new File([z.blob], z.name, { type: 'application/zip' }) : null;
-  }
-  canShareZip(): boolean {
-    const f = this.zipFile();
-    return !!f && typeof navigator !== 'undefined' && !!navigator.canShare && navigator.canShare({ files: [f] });
-  }
-  async shareZip(): Promise<void> {
-    const f = this.zipFile();
-    if (!f) return;
-    try {
-      await navigator.share({ files: [f], title: f.name });
-    } catch (e) {
-      if ((e as DOMException)?.name !== 'AbortError') this.error.set('No se pudo compartir el ZIP. Descárgalo.');
-    }
-  }
-  downloadZip(): void {
-    const z = this.zip();
-    if (!z) return;
-    const url = URL.createObjectURL(z.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = z.name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
   private watchWidth(): void {
@@ -467,11 +462,7 @@ export class QuoteImagePage implements OnInit, OnDestroy {
 
   /** Abre el menú de compartir del teléfono (WhatsApp aparece ahí). Debe llamarse directo desde el toque. */
   async share(): Promise<void> {
-    try {
-      await shareFiles(this.shots(), `Cotización ${this.quote()?.number ?? ''}`);
-    } catch {
-      this.error.set('No se pudo compartir. Descarga la imagen y envíala por WhatsApp.');
-    }
+    await this.shareList(this.shots(), `Cotización ${this.quote()?.number ?? ''}`);
   }
 
   downloadAll(): void {
