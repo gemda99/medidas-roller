@@ -1,5 +1,5 @@
 import { ConfectionCurtain } from './confection-engine';
-import { GUIDE_PHOTOS, guidePages, guideRows } from './installation-pages';
+import { GUIDE_PHOTO_MAIN, GUIDE_PHOTO_THUMBS, guideCardHeight, guidePages, guideRows } from './installation-pages';
 
 const c = (i: number, loc: string): ConfectionCurtain => ({
   curtain_id: `c${i}`, index: i, location_name: loc, product_code: 'BO', product_name: 'Blackout', label: null, external: false, missing_rules: false,
@@ -8,19 +8,20 @@ const c = (i: number, loc: string): ConfectionCurtain => ({
 });
 
 describe('páginas de la guía del instalador', () => {
-  it('máximo 3 fotos por cortina y suma su alto', () => {
+  it('tarjetas por ubicación, 3 por fila, máximo 3 fotos por cortina', () => {
     const photos = new Map([['c1', ['a', 'b', 'c', 'd']]]);
-    const rows = guideRows([c(1, 'Living'), c(2, 'Living')], photos);
-    const [, first, second] = rows;
-    expect(first.type === 'curtain' && first.photos.length).toBe(3);
-    expect(first.height - second.height).toBe(GUIDE_PHOTOS);
+    const rows = guideRows([c(1, 'Living'), c(2, 'Living'), c(3, 'Living'), c(4, 'Living'), c(5, 'Hab. 1')], photos);
+    expect(rows.map((r) => (r.type === 'group' ? `#${r.label}` : r.cards.length))).toEqual(['#Living', 3, 1, '#Hab. 1', 1]);
+    const first = rows[1];
+    expect(first.type === 'cards' && first.cards[0].photos.length).toBe(3);
+    expect(guideCardHeight({ curtain: c(1, 'x'), photos: ['a', 'b'] }) - guideCardHeight({ curtain: c(1, 'x'), photos: [] })).toBe(GUIDE_PHOTO_MAIN + GUIDE_PHOTO_THUMBS);
   });
 
   it('muchas cortinas con fotos se dividen sin perder ninguna', () => {
-    const list = Array.from({ length: 20 }, (_, i) => c(i + 1, `Hab. ${Math.floor(i / 3)}`));
+    const list = Array.from({ length: 40 }, (_, i) => c(i + 1, `Hab. ${Math.floor(i / 4)}`));
     const photos = new Map(list.map((x) => [x.curtain_id, ['a']]));
     const pages = guidePages(list, photos, { signed: true });
     expect(pages.length).toBeGreaterThan(1);
-    expect(pages.flat().filter((r) => r.type === 'curtain').length).toBe(20);
+    expect(pages.flat().flatMap((r) => (r.type === 'cards' ? r.cards : [])).length).toBe(40);
   });
 });

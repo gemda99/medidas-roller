@@ -1,14 +1,15 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { ConfectionCurtain } from '../../domain/confection/confection-engine';
-import { GuideRow } from '../../domain/confection/installation-pages';
-import { BusinessSettings } from '../../domain/models/business';
+import { guideFacts, GuideRow } from '../../domain/confection/installation-pages';
 import { JobInfo } from '../../domain/confection/work-snapshot';
+import { BusinessSettings } from '../../domain/models/business';
 import { formatDate } from '../../shared/format';
 import { formatRut } from '../../shared/validation/rut';
 
 /**
- * Una página de la guía del instalador, 1080 px y SIN precios: dónde va cada cortina, cómo se instala,
- * su medida de terreno, cadena, caída, motor, notas y fotos. Al final, la firma de conformidad del cliente.
+ * Una página de la guía del instalador, 1080 px y SIN precios. Mismo formato que la cotización:
+ * por ubicación, las cortinas en tarjetas consecutivas (3 por fila) con medida, instalación, cadena,
+ * caída, motor, notas y fotos. Al final, la firma de conformidad del cliente.
  */
 @Component({
   selector: 'app-installation-sheet',
@@ -21,27 +22,22 @@ import { formatRut } from '../../shared/validation/rut';
           @if (logo()) { <img [src]="logo()" alt="" class="logo" /> }
           @else if (b.business_name) { <div class="bname">{{ b.business_name }}</div> }
         </div>
-        <div class="contact">
-          @if (b.phone) { <span>{{ b.phone }}</span> }
-          @if (b.email) { <span>{{ b.email }}</span> }
+        <div class="doc">
+          <div class="title">GUÍA DE INSTALACIÓN</div>
+          <div class="num">{{ r.installation_date ? date(r.installation_date) : 'Fecha por agendar' }} · {{ total() }} cortinas</div>
         </div>
       </header>
 
-      <div class="band">
-        <span class="title">GUÍA DE INSTALACIÓN</span>
-        <span class="meta">{{ r.installation_date ? date(r.installation_date) : 'Fecha por agendar' }}<span class="sep"></span>{{ total() }} cortinas</span>
-      </div>
-
       @if (first()) {
-        <section class="boxes">
-          <div class="box">
+        <section class="info">
+          <div class="col">
             <div class="cap">Cliente</div>
-            <div class="big">{{ r.customer_name }}</div>
+            <div class="cname">{{ r.customer_name }}</div>
             <div>{{ r.address }}</div>
             @if (r.address_reference) { <div class="muted">Ref.: {{ r.address_reference }}</div> }
             @if (r.phone) { <div class="phone">{{ r.phone }}</div> }
           </div>
-          <div class="box tinted">
+          <div class="col tinted">
             <div class="cap">Trabajo</div>
             <div class="kv"><span>Instalación</span><strong>{{ r.installation_date ? date(r.installation_date) : 'Por agendar' }}</strong></div>
             <div class="kv"><span>Rectificó</span><span>{{ r.executive_name }}</span></div>
@@ -52,32 +48,36 @@ import { formatRut } from '../../shared/validation/rut';
 
       @for (row of rows(); track $index) {
         @if (row.type === 'group') {
-          <div class="group">{{ row.label }}</div>
+          <div class="group"><span>{{ row.label }}</span></div>
         } @else {
-          @let c = row.curtain;
-          <div class="curtain">
-            <div class="ctitle">
-              <span class="num">{{ c.index }}</span>
-              <strong>{{ c.product_name }}</strong>
-              <span class="code">{{ c.product_code }}</span>
-              @if (c.label) { <span class="muted">· {{ c.label }}</span> }
-            </div>
-            @for (l of c.layers; track $index) {
-              <div class="layer">
-                @if (l.label) { <strong class="ll">{{ l.label }} · {{ l.product_code }}</strong> }
-                <span class="meas">{{ cm(l.width_cm) }} × {{ cm(l.height_cm) }} cm</span>
-                <span class="muted">{{ layerInfo(l) }}</span>
-              </div>
-            }
-            @if (facts(c).length) {
-              <div class="facts">
-                @for (f of facts(c); track $index) { <span class="fact"><em>{{ f[0] }}</em> {{ f[1] }}</span> }
-              </div>
-            }
-            @if (c.notes) { <div class="note">{{ c.notes }}</div> }
-            @if (row.photos.length) {
-              <div class="photos">
-                @for (p of row.photos; track $index) { <img [src]="p" alt="" /> }
+          <div class="cards">
+            @for (card of row.cards; track card.curtain.curtain_id) {
+              @let c = card.curtain;
+              <div class="card">
+                <div class="ctop">
+                  <span class="n">{{ c.index }}</span>
+                  <div class="cdesc">
+                    <strong>{{ c.product_name }}</strong>
+                    <span class="muted">{{ c.product_code }}@if (c.label) { · {{ c.label }} }</span>
+                  </div>
+                </div>
+                @for (l of c.layers; track $index) {
+                  <div class="meas">
+                    @if (l.label) { <span class="ll">{{ l.label }} · {{ l.product_code }}</span> }
+                    <strong>{{ cm(l.width_cm) }} × {{ cm(l.height_cm) }} cm</strong>
+                    <span class="muted">{{ layerInfo(l) }}</span>
+                  </div>
+                }
+                @for (f of facts(c); track $index) {
+                  <div class="fact"><span>{{ f[0] }}</span><strong>{{ f[1] }}</strong></div>
+                }
+                @if (c.notes) { <div class="note">{{ c.notes }}</div> }
+                @if (card.photos.length) {
+                  <img class="photo" [src]="card.photos[0]" alt="" />
+                  @if (card.photos.length > 1) {
+                    <div class="thumbs">@for (p of card.photos.slice(1); track $index) { <img [src]="p" alt="" /> }</div>
+                  }
+                }
               </div>
             }
           </div>
@@ -115,50 +115,52 @@ import { formatRut } from '../../shared/validation/rut';
   `,
   styles: `
     :host { display: block; }
-    .sheet { width: 1080px; box-sizing: border-box; padding: 52px 60px 0; background: #fff; color: #142033;
-      font: 400 22px/1.4 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
-      --tint: color-mix(in srgb, var(--accent) 7%, #fff); --line: #e3e8ef; --muted: #66768c; }
-    .head { display: flex; justify-content: space-between; align-items: center; gap: 32px; min-height: 80px; }
-    .logo { max-height: 90px; max-width: 360px; object-fit: contain; display: block; }
-    .bname { font: 800 36px/1.1 Inter, sans-serif; color: var(--accent); }
-    .contact { display: flex; flex-direction: column; align-items: flex-end; font-size: 19px; color: var(--muted); }
-    .band { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 24px; padding: 20px 28px;
-      background: var(--accent); color: #fff; border-radius: 14px; }
-    .band .title { font: 800 32px/1 Inter, sans-serif; letter-spacing: 1.5px; }
-    .band .meta { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; }
-    .band .sep { width: 1px; height: 26px; background: rgb(255 255 255 / 45%); }
-    .boxes { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; margin-top: 22px; }
-    .box { border: 2px solid var(--line); border-radius: 14px; padding: 16px 22px; font-size: 21px; }
-    .box.tinted { background: var(--tint); border-color: transparent; }
-    .big { font: 700 27px/1.25 Inter, sans-serif; margin-bottom: 4px; }
-    .phone { margin-top: 6px; font-weight: 700; font-size: 24px; color: var(--accent); }
-    .cap { font: 700 16px/1 Inter, sans-serif; text-transform: uppercase; letter-spacing: 1.6px; color: var(--accent); margin-bottom: 10px; }
-    .kv { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding: 2px 0; }
-    .kv > span:first-child { color: var(--muted); }
-    .muted { color: var(--muted); }
-    .group { margin-top: 22px; padding: 12px 16px; background: var(--accent); color: #fff; border-radius: 10px; font: 700 22px/1.2 Inter, sans-serif; }
-    .curtain { padding: 16px 16px 18px; border-bottom: 1px solid var(--line); }
-    .ctitle { display: flex; align-items: center; gap: 12px; font-size: 23px; }
-    .num { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--tint); color: var(--accent); font: 700 18px/36px Inter, sans-serif; text-align: center; }
-    .code { padding: 2px 10px; border-radius: 8px; background: var(--tint); color: var(--accent); font-weight: 700; font-size: 18px; }
-    .layer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin: 8px 0 0 48px; font-size: 20px; }
-    .ll { font-size: 20px; }
-    .meas { font-weight: 800; font-size: 24px; }
-    .facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0 48px; }
-    .fact { padding: 5px 12px; border-radius: 8px; background: var(--tint); font-size: 19px; font-weight: 600; }
-    .fact em { font-style: normal; font-weight: 400; color: var(--muted); }
-    .note { margin: 10px 0 0 48px; padding: 8px 12px; border-left: 4px solid #d97706; background: #fff7ea; font-size: 20px; white-space: pre-line; }
-    .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 0 48px; }
-    .photos img { width: 100%; height: 210px; object-fit: cover; border-radius: 10px; display: block; }
-    .obs { margin-top: 24px; padding: 16px 22px; border-radius: 14px; background: var(--tint); }
-    .obs p { margin: 0; font-size: 20px; white-space: pre-line; }
-    .sign { margin-top: 24px; padding: 18px 22px; border: 2px solid var(--line); border-radius: 14px; }
-    .stext { margin: 0 0 10px; font-size: 19px; }
-    .sig { display: block; max-width: 420px; max-height: 170px; object-fit: contain; border-bottom: 2px solid #142033; }
-    .sline { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 19px; color: var(--muted); }
+    .sheet { width: 1080px; box-sizing: border-box; padding: 40px 44px 0; background: #fff; color: #142033;
+      font: 400 17px/1.4 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+      --tint: color-mix(in srgb, var(--accent) 6%, #fff); --line: #e3e8ef; --muted: #66768c; }
+    .head { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-bottom: 18px; border-bottom: 4px solid var(--accent); }
+    .logo { max-height: 80px; max-width: 340px; object-fit: contain; display: block; }
+    .bname { font: 800 30px/1.1 Inter, sans-serif; color: var(--accent); }
+    .doc { text-align: right; }
+    .title { font: 800 26px/1 Inter, sans-serif; letter-spacing: 1.5px; color: var(--accent); }
+    .num { font: 600 17px/1.3 Inter, sans-serif; margin-top: 6px; color: #3a4a60; }
+    .info { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-top: 18px; font-size: 16px; }
+    .col { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+    .col.tinted { background: var(--tint); border-color: transparent; }
+    .cap { font: 700 12px/1 Inter, sans-serif; text-transform: uppercase; letter-spacing: 1.4px; color: var(--accent); margin-bottom: 8px; }
+    .cname { font: 700 20px/1.25 Inter, sans-serif; margin-bottom: 2px; }
+    .phone { margin-top: 4px; font-weight: 700; font-size: 19px; color: var(--accent); }
+    .kv { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; }
+    .kv span:first-child { color: var(--muted); }
+    .muted { color: var(--muted); font-size: 14.5px; }
+    .group { display: flex; align-items: center; gap: 12px; margin-top: 18px; font: 700 17px/1.2 Inter, sans-serif; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 1px; }
+    .group::after { content: ''; flex: 1; height: 2px; background: var(--line); }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; align-items: stretch; }
+    .card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; border-top: 4px solid var(--accent); min-width: 0; }
+    .ctop { display: flex; gap: 10px; align-items: flex-start; }
+    .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 13px/26px Inter, sans-serif; text-align: center; }
+    .cdesc { display: flex; flex-direction: column; min-width: 0; }
+    .cdesc strong { font-size: 17px; line-height: 1.25; }
+    .meas { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 8px; background: var(--tint); }
+    .meas strong { font-size: 19px; }
+    .meas .ll { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .fact { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; }
+    .fact span { color: var(--muted); }
+    .fact strong { text-align: right; }
+    .note { padding: 6px 10px; border-left: 3px solid #d97706; background: #fff7ea; font-size: 14.5px; white-space: pre-line; }
+    .photo { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; display: block; margin-top: auto; }
+    .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .thumbs img { width: 100%; height: 66px; object-fit: cover; border-radius: 6px; display: block; }
+    .obs { margin-top: 20px; padding: 12px 16px; border-radius: 12px; background: var(--tint); }
+    .obs p { margin: 0; font-size: 16px; white-space: pre-line; }
+    .sign { margin-top: 18px; padding: 14px 18px; border: 1.5px solid var(--line); border-radius: 12px; }
+    .stext { margin: 0 0 8px; font-size: 15px; }
+    .sig { display: block; max-width: 360px; max-height: 140px; object-fit: contain; border-bottom: 2px solid #142033; }
+    .sline { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; font-size: 15px; color: var(--muted); }
     .sline strong { color: #142033; }
-    .bottom { display: flex; justify-content: space-between; gap: 20px; margin: 26px -60px 0; padding: 18px 60px;
-      background: var(--accent); color: rgb(255 255 255 / 85%); font-size: 18px; }
+    .bottom { display: flex; justify-content: space-between; gap: 20px; margin: 22px -44px 0; padding: 14px 44px;
+      background: var(--accent); color: rgb(255 255 255 / 85%); font-size: 15px; }
   `,
 })
 export class InstallationSheetComponent {
@@ -171,9 +173,12 @@ export class InstallationSheetComponent {
   readonly pageIndex = input(0);
   readonly pageCount = input(1);
 
-  readonly first = computed(() => this.pageIndex() === 0);
-  readonly last = computed(() => this.pageIndex() === this.pageCount() - 1);
-
+  first(): boolean {
+    return this.pageIndex() === 0;
+  }
+  last(): boolean {
+    return this.pageIndex() === this.pageCount() - 1;
+  }
   date(iso: string | null): string {
     return formatDate(iso);
   }
@@ -190,12 +195,6 @@ export class InstallationSheetComponent {
     return [l.color_name, l.fall ? `caída ${l.fall}` : null, l.motorized ? 'con motor' : null].filter(Boolean).join(' · ');
   }
   facts(c: ConfectionCurtain): [string, string][] {
-    const out: [string, string][] = [];
-    if (c.installation) out.push(['Instalación', c.installation]);
-    if (c.chain) out.push(['Cadena', c.chain]);
-    if (c.cenefa !== null) out.push(['Cenefa', 'sí']);
-    const extras = c.extras.filter((e) => e !== 'Cenefa');
-    if (extras.length) out.push(['Lleva', extras.join(', ')]);
-    return out;
+    return guideFacts(c);
   }
 }
