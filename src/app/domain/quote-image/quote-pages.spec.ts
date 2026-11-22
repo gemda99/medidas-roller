@@ -12,16 +12,19 @@ const lines4 = textBlocks('a\nb\nc\nd');
 const long = textBlocks(Array.from({ length: 30 }, (_, i) => `Condición número ${i} con un texto de largo normal`).join('\n'));
 
 describe('páginas de la imagen', () => {
-  it('agrupa por ubicación y marca las sublíneas (motor, cenefa) de cada cortina', () => {
-    const rows = buildRows([line('Living'), line('Living', 'motor'), line('Hab. 1'), line('', 'adicional', null)]);
-    expect(rows.map((r) => (r.type === 'group' ? `#${r.label}` : r.sub ? 'sub' : 'item'))).toEqual([
-      '#Living', 'item', 'sub', '#Hab. 1', 'item', '#Adicionales', 'item',
+  it('agrupa por ubicación en tarjetas; motor y cenefa van dentro de la tarjeta de su cortina', () => {
+    const rows = buildRows([line('Living', 'cortina', 'a'), line('Living', 'motor', 'a'), line('Living', 'cortina', 'b'), line('Hab. 1', 'cortina', 'c'), line('', 'adicional', null)]);
+    expect(rows.map((r) => (r.type === 'group' ? `#${r.label}` : r.cards.map((c) => `${c.index ?? '-'}:${c.subs.length}`).join(',')))).toEqual([
+      '#Living', '1:1,2:0', '#Hab. 1', '3:0', '#Adicionales', '-:0',
     ]);
+    const first = rows[1];
+    expect(first.type === 'cards' && first.cards[0].total).toBe(78540 * 2);
   });
 
-  it('numera solo las cortinas', () => {
-    const rows = buildRows([line('Living'), line('Living', 'motor'), line('Hab. 1')]);
-    expect(rows.flatMap((r) => (r.type === 'line' ? [r.index] : []))).toEqual([1, null, 2]);
+  it('3 tarjetas por fila; la fila mide lo de la tarjeta más alta', () => {
+    const rows = buildRows(Array.from({ length: 7 }, (_, i) => line('Living', 'cortina', `c${i}`)));
+    const cardRows = rows.filter((r) => r.type === 'cards');
+    expect(cardRows.map((r) => (r.type === 'cards' ? r.cards.length : 0))).toEqual([3, 3, 1]);
   });
 
   it('los textos largos ocupan más alto y los subtítulos se reconocen', () => {
@@ -37,8 +40,8 @@ describe('páginas de la imagen', () => {
     expect(pages.length).toBe(1);
   });
 
-  it('25 cortinas se dividen en varias imágenes sin perder filas', () => {
-    const lines = Array.from({ length: 25 }, (_, i) => line(`Hab. ${Math.floor(i / 3)}`));
+  it('60 cortinas se dividen en varias imágenes sin perder filas', () => {
+    const lines = Array.from({ length: 60 }, (_, i) => line(`Hab. ${Math.floor(i / 3)}`, 'cortina', `c${i}`));
     const rows = buildRows(lines);
     const pages = paginate(rows, footerHeight(lines4));
     expect(pages.length).toBeGreaterThan(1);
@@ -46,13 +49,13 @@ describe('páginas de la imagen', () => {
   });
 
   it('ninguna página termina con un título de ubicación suelto', () => {
-    const lines = Array.from({ length: 40 }, (_, i) => line(`Ubicación ${i}`));
+    const lines = Array.from({ length: 80 }, (_, i) => line(`Ubicación ${i}`, 'cortina', `c${i}`));
     const pages = paginate(buildRows(lines), footerHeight(lines4));
     for (const p of pages.slice(0, -1)) expect(p[p.length - 1]?.type).not.toBe('group');
   });
 
   it('si los totales no caben en la última página, van en una página propia', () => {
-    const lines = Array.from({ length: 11 }, () => line('Living'));
+    const lines = Array.from({ length: 24 }, (_, i) => line('Living', 'cortina', `c${i}`));
     const pages = paginate(buildRows(lines), footerHeight(long));
     expect(pages[pages.length - 1].length).toBe(0);
   });

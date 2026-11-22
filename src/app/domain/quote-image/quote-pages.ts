@@ -7,38 +7,74 @@
 import { TextBlock } from '../models/business';
 import { QuoteLine } from '../pricing/pricing-engine';
 
+/** Una cortina (o un adicional suelto) con sus cargos asociados (motor, cenefa, accesorios). */
+export interface QuoteCard {
+  /** N° de cortina; null en adicionales sueltos (control remoto, extras). */
+  index: number | null;
+  line: QuoteLine;
+  subs: QuoteLine[];
+  /** Total de la tarjeta: la cortina más sus cargos. */
+  total: number;
+}
+
 export type ImageRow =
   | { type: 'group'; label: string; height: number }
-  | { type: 'line'; line: QuoteLine; sub: boolean; index: number | null; height: number };
+  | { type: 'cards'; cards: QuoteCard[]; height: number };
 
-/** Alto máximo por imagen: una cotización normal (hasta ~6 cortinas con condiciones y garantía) cabe en una sola. */
-export const PAGE_MAX = 2800;
-export const HEADER_FIRST = 760;
-export const HEADER_NEXT = 330;
-export const ROW_GROUP = 58;
-export const ROW_ITEM = 96;
-export const ROW_LAYER = 40;
-export const ROW_SUB = 54;
-export const FOOTER_BASE = 480;
-export const TEXT_TITLE = 48;
-export const TEXT_LINE = 28;
-/** Caracteres por renglón aprox. del texto de condiciones a 19 px en 960 px útiles. */
-export const TEXT_CHARS_PER_LINE = 92;
+/** Alto máximo por imagen: una cotización normal (hasta ~9 cortinas con condiciones y garantía) cabe en una sola. */
+export const PAGE_MAX = 2600;
+export const HEADER_FIRST = 560;
+export const HEADER_NEXT = 250;
+export const ROW_GROUP = 50;
+/** Tarjetas por fila (1080 px de ancho). */
+export const CARDS_PER_ROW = 3;
+export const CARD_BASE = 150;
+export const CARD_LAYER = 26;
+export const CARD_SUB = 26;
+export const CARD_GAP = 12;
+export const FOOTER_BASE = 420;
+export const TEXT_TITLE = 40;
+export const TEXT_LINE = 24;
+/** Caracteres por renglón aprox. del texto de condiciones a 17 px en 990 px útiles. */
+export const TEXT_CHARS_PER_LINE = 108;
 
-export function buildRows(lines: QuoteLine[]): ImageRow[] {
-  const rows: ImageRow[] = [];
-  let current: string | null = null;
+export function cardHeight(c: QuoteCard): number {
+  return CARD_BASE + (c.line.layers?.length ?? 0) * CARD_LAYER + c.subs.length * CARD_SUB;
+}
+
+/** Agrupa las líneas por ubicación y arma tarjetas: cada cortina junto con su motor, cenefa y accesorios. */
+export function buildCards(lines: QuoteLine[]): { label: string; cards: QuoteCard[] }[] {
+  const groups: { label: string; cards: QuoteCard[] }[] = [];
   let n = 0;
+  let last: QuoteCard | null = null;
   for (const l of lines) {
-    const group = l.location_name || 'Adicionales';
-    if (group !== current) {
-      rows.push({ type: 'group', label: group, height: ROW_GROUP });
-      current = group;
+    const label = l.location_name || 'Adicionales';
+    let g = groups[groups.length - 1];
+    if (!g || g.label !== label) {
+      g = { label, cards: [] };
+      groups.push(g);
+      last = null;
     }
-    const sub = l.kind !== 'cortina' && !!l.curtain_id;
-    const index = l.kind === 'cortina' ? ++n : null;
-    const height = sub ? ROW_SUB : ROW_ITEM + (l.layers?.length ?? 0) * ROW_LAYER;
-    rows.push({ type: 'line', line: l, sub, index, height });
+    const isSub = l.kind !== 'cortina' && !!l.curtain_id && last?.line.curtain_id === l.curtain_id;
+    if (isSub && last) {
+      last.subs.push(l);
+      last.total += l.line_total;
+      continue;
+    }
+    last = { index: l.kind === 'cortina' ? ++n : null, line: l, subs: [], total: l.line_total };
+    g.cards.push(last);
+  }
+  return groups;
+}
+
+export function buildRows(lines: QuoteLine[], perRow = CARDS_PER_ROW): ImageRow[] {
+  const rows: ImageRow[] = [];
+  for (const g of buildCards(lines)) {
+    rows.push({ type: 'group', label: g.label, height: ROW_GROUP });
+    for (let i = 0; i < g.cards.length; i += perRow) {
+      const cards = g.cards.slice(i, i + perRow);
+      rows.push({ type: 'cards', cards, height: Math.max(...cards.map(cardHeight)) + CARD_GAP });
+    }
   }
   return rows;
 }
