@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { UpdateBanner } from './core/pwa/update-banner';
 import { isSupabaseConfigured } from './data-access/supabase/supabase.client';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, UpdateBanner],
   template: `
+    <app-update-banner />
     @if (configured) {
       <router-outlet />
     } @else {
