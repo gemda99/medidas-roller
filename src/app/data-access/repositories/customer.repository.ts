@@ -1,3 +1,4 @@
+import { FilePaths, removeFiles } from './storage-cleanup';
 import { inject, Injectable } from '@angular/core';
 import { SUPABASE } from '../supabase/supabase.client';
 import {
@@ -83,9 +84,24 @@ export class CustomerRepository {
   }
 
   async remove(id: string): Promise<void> {
+    const r = await this.db.from('rectifications').select('id', { count: 'exact', head: true }).eq('customer_id', id);
+    if (r.error) throw r.error;
+    if (r.count) {
+      throw {
+        code: 'P0001',
+        message: `Este cliente tiene ${r.count} ${r.count === 1 ? 'rectificación' : 'rectificaciones'}. Elimínalas primero o usa «Eliminar todo».`,
+      };
+    }
     const { data, error } = await this.db.from('customers').delete().eq('id', id).select('id');
     if (error) throw error;
     if (!data?.length) throw { code: '42501', message: 'permission denied' };
+  }
+
+  /** Solo administrador: borra el cliente con sus rectificaciones, cotizaciones, fotos e imágenes. */
+  async purge(id: string): Promise<void> {
+    const { data, error } = await this.db.rpc('admin_delete_customer', { p_id: id });
+    if (error) throw error;
+    await removeFiles(this.db, data as FilePaths);
   }
 
   async addAddress(customerId: string, input: AddressInput, isDefault = false): Promise<CustomerAddress> {

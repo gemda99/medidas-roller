@@ -183,7 +183,9 @@
         <button type="button" class="btn btn-block" [disabled]="busy()" (click)="askReopen()">Volver a borrador para editar</button>
       }
       <a class="btn btn-block" [routerLink]="['/clientes', r.customer_id]">Ver cliente</a>
-      @if (canDelete()) {
+      @if (auth.isAdmin()) {
+        <button type="button" class="btn btn-danger btn-block" (click)="ask({ kind: 'purge' })">Eliminar todo</button>
+      } @else if (canDelete()) {
         <button type="button" class="btn btn-danger btn-block" (click)="ask({ kind: 'rectification' })">Eliminar rectificación</button>
       }
     </div>
@@ -194,5 +196,5 @@
   </div>
 }
 
-<app-confirm-dialog [title]="confirmTitle()" [message]="confirmMessage()" (confirmed)="onConfirmed()" />
+<app-confirm-dialog [title]="confirmTitle()" [message]="confirmMessage()" [requireText]="pending()?.kind === 'purge' ? (rect()?.customers?.full_name ?? null) : null" [confirmLabel]="pending()?.kind === 'purge' ? 'Eliminar todo' : 'Eliminar'" (confirmed)="onConfirmed()" />
 <app-confirm-dialog #reopenDlg title="¿Volver a borrador?" message="La firma del cliente se borra, porque las medidas podrían cambiar. Al completar de nuevo, el cliente vuelve a firmar." confirmLabel="Volver a borrador" (confirmed)="reopen()" />

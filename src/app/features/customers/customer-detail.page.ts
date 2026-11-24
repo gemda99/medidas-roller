@@ -129,13 +129,22 @@ export class CustomerDetailPage implements OnInit {
       : `¿Eliminar la dirección ${p.address.address_line}?`;
   }
 
+  deleteMessage(): string {
+    if (this.pending()?.kind !== 'customer') return 'Esta acción no se puede deshacer.';
+    const n = this.works().length;
+    return n
+      ? `Se borran sus direcciones y sus ${n} ${n === 1 ? 'rectificación' : 'rectificaciones'} con cortinas, fotos, firmas y todas sus cotizaciones (también emitidas o aceptadas). No se puede deshacer.`
+      : 'Se borran también sus direcciones. Esta acción no se puede deshacer.';
+  }
+
   async onConfirmed(): Promise<void> {
     const p = this.pending();
     if (!p) return;
     if (p.kind === 'customer') {
       this.busy.set(true);
       try {
-        await this.repo.remove(this.id);
+        if (this.works().length) await this.repo.purge(this.id);
+        else await this.repo.remove(this.id);
         await this.router.navigateByUrl('/clientes');
       } catch (e) {
         this.error.set(toUserMessage(e));

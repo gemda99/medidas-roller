@@ -1,3 +1,4 @@
+import { FilePaths, removeFiles } from './storage-cleanup';
 import { inject, Injectable } from '@angular/core';
 import { SUPABASE } from '../supabase/supabase.client';
 import { PhotoRepository } from './photo.repository';
@@ -98,10 +99,27 @@ export class RectificationRepository {
   }
 
   async remove(id: string): Promise<void> {
+    // Antes de tocar las fotos: si tiene cotizaciones, la base no la deja borrar (se conserva el historial).
+    const q = await this.db.from('quotations').select('number').eq('rectification_id', id);
+    if (q.error) throw q.error;
+    if (q.data?.length) {
+      const nums = (q.data as { number: string }[]).map((x) => x.number).join(', ');
+      throw {
+        code: 'P0001',
+        message: `Esta rectificación tiene ${q.data.length === 1 ? 'la cotización' : 'las cotizaciones'} ${nums}. Elimina primero las que estén en borrador; si alguna ya fue emitida, el administrador puede usar «Eliminar todo».`,
+      };
+    }
     await this.photos.removeForCurtains(await this.curtainIdsOf('rectification', id));
     const { data, error } = await this.db.from('rectifications').delete().eq('id', id).select('id');
     if (error) throw error;
     if (!data?.length) throw { code: '42501', message: 'permission denied' };
+  }
+
+  /** Solo administrador: borra la rectificación con sus cotizaciones (aunque estén emitidas), fotos e imágenes. */
+  async purge(id: string): Promise<void> {
+    const { data, error } = await this.db.rpc('admin_delete_rectification', { p_id: id });
+    if (error) throw error;
+    await removeFiles(this.db, data as FilePaths);
   }
 
   async addLocation(rectificationId: string, name: string, sortOrder: number): Promise<Location> {

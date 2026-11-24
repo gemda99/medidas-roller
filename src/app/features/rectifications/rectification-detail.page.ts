@@ -28,7 +28,8 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'offline' | 'error';
 type Pending =
   | { kind: 'location'; location: Location }
   | { kind: 'curtain'; curtain: Curtain }
-  | { kind: 'rectification' };
+  | { kind: 'rectification' }
+  | { kind: 'purge' };
 
 @Component({
   selector: 'app-rectification-detail-page',
@@ -294,6 +295,7 @@ export class RectificationDetailPage implements OnInit {
     if (!p) return '';
     if (p.kind === 'location') return `¿Eliminar la ubicación ${p.location.name}?`;
     if (p.kind === 'curtain') return `¿Eliminar la cortina ${this.summary(p.curtain)}?`;
+    if (p.kind === 'purge') return `¿Eliminar todo de ${this.rect()?.customers?.full_name ?? 'esta rectificación'}?`;
     return '¿Eliminar esta rectificación completa?';
   }
 
@@ -302,6 +304,9 @@ export class RectificationDetailPage implements OnInit {
     if (p?.kind === 'location' && p.location.curtains.length) {
       const n = p.location.curtains.length;
       return `Se borran también sus ${n} cortina${n === 1 ? '' : 's'}. No se puede deshacer.`;
+    }
+    if (p?.kind === 'purge') {
+      return `Se borran la rectificación, sus ${this.curtainCount()} cortinas con fotos, la firma y todas sus cotizaciones (también emitidas o aceptadas) con sus imágenes. No se puede deshacer.`;
     }
     if (p?.kind === 'rectification') return `Se borran sus ubicaciones y ${this.curtainCount()} cortinas. No se puede deshacer.`;
     return 'No se puede deshacer.';
@@ -312,10 +317,11 @@ export class RectificationDetailPage implements OnInit {
     if (!p) return;
     if (p.kind === 'location') await this.run(() => this.repo.removeLocation(p.location.id));
     if (p.kind === 'curtain') await this.run(() => this.repo.removeCurtain(p.curtain.id));
-    if (p.kind === 'rectification') {
+    if (p.kind === 'rectification' || p.kind === 'purge') {
       this.busy.set(true);
       try {
-        await this.repo.remove(this.id);
+        if (p.kind === 'purge') await this.repo.purge(this.id);
+        else await this.repo.remove(this.id);
         this.drafts.clear(this.draftKey);
         await this.router.navigateByUrl('/rectificaciones');
       } catch (e) {

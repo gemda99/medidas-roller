@@ -94,7 +94,7 @@
     </section>
 
     @if (auth.isAdmin()) {
-      <button type="button" class="btn btn-danger" (click)="askDeleteCustomer()" [disabled]="busy()">Eliminar cliente</button>
+      <button type="button" class="btn btn-danger" (click)="askDeleteCustomer()" [disabled]="busy()">{{ works().length ? 'Eliminar cliente y todos sus trabajos' : 'Eliminar cliente' }}</button>
     }
   } @else {
     <div class="alert alert-error" role="alert">
@@ -129,5 +129,6 @@
 
 <app-confirm-dialog
   [title]="confirmTitle()"
-  [message]="pending()?.kind === 'customer' ? 'Se borran también sus direcciones. Esta acción no se puede deshacer.' : 'Esta acción no se puede deshacer.'"
+  [message]="deleteMessage()"
+  [requireText]="pending()?.kind === 'customer' && works().length ? (customer()?.full_name ?? null) : null"
   (confirmed)="onConfirmed()" />
