@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LucideClipboardList, LucideHouse, LucideLogOut, LucideSettings, LucideUsers } from '@lucide/angular';
 import { AuthService } from '../auth/auth.service';
+import { ThemeService } from '../theme/theme.service';
 
 /**
  * Marco de la app con sesión: menú lateral en computador y barra inferior en teléfono.
@@ -13,7 +14,7 @@ import { AuthService } from '../auth/auth.service';
   template: `
     <div class="layout">
       <nav class="side" aria-label="Menú principal">
-        <div class="brand"><img src="logo-96.png" alt="" width="32" height="32" class="brand-logo" />Medidas Roller</div>
+        <div class="brand"><img [src]="theme.logo() ?? 'logo-96.png'" alt="" width="32" height="32" class="brand-logo" /><span>{{ theme.name() || 'Medidas Roller' }}</span></div>
         <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
           <svg lucideHouse [size]="20" aria-hidden="true"></svg> Inicio
         </a>
@@ -69,10 +70,13 @@ import { AuthService } from '../auth/auth.service';
 })
 export class Shell {
   protected readonly auth = inject(AuthService);
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   protected readonly offline = signal(typeof navigator !== 'undefined' && navigator.onLine === false);
 
   constructor() {
+    // Marca de la empresa (colores, nombre y logo) apenas hay sesión.
+    void this.theme.refresh();
     const update = () => this.offline.set(navigator.onLine === false);
     window.addEventListener('online', update);
     window.addEventListener('offline', update);

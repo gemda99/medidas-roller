@@ -16,6 +16,9 @@ export interface BusinessSettings {
   delivery_time_text: string | null;
   warranty_text: string | null;
   conditions_text: string | null;
+  /** Colores de la app: fondos y resaltados. */
+  theme_primary: string;
+  theme_secondary: string;
   /** Garantía detallada: cobertura y casos no cubiertos. */
   warranty_details_text: string | null;
   thank_you_text: string | null;
@@ -25,7 +28,7 @@ export interface BusinessSettings {
 export const EMPTY_BUSINESS: BusinessSettings = {
   business_name: null, tax_id: null, phone: null, email: null, website: null, address: null, logo_path: null,
   bank_name: null, bank_account_type: null, bank_account_number: null, bank_holder: null, bank_holder_tax_id: null,
-  bank_email: null, delivery_time_text: null, warranty_text: null, conditions_text: null, warranty_details_text: null, thank_you_text: null,
+  bank_email: null, delivery_time_text: null, warranty_text: null, conditions_text: null, warranty_details_text: null, theme_primary: '#0F2A4A', theme_secondary: '#2563EB', thank_you_text: null,
   accent_color: '#0F2A4A',
 };
 

@@ -14,7 +14,7 @@ export const MEDIDOR = '00000000-0000-0000-0000-00000000000b';
 export const INACTIVO = '00000000-0000-0000-0000-00000000000c';
 export const MEDIDOR2 = '00000000-0000-0000-0000-00000000000d';
 
-const SUPABASE_SHIM = `
+export const SUPABASE_SHIM = `
   create role anon nologin;
   create role authenticated nologin;
   create schema auth;

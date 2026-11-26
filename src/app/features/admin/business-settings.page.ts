@@ -2,6 +2,8 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { BusinessRepository } from '../../data-access/repositories/business.repository';
 import { BusinessSettings, EMPTY_BUSINESS } from '../../domain/models/business';
 import { toUserMessage } from '../../shared/errors';
+import { ThemeService } from '../../core/theme/theme.service';
+import { DEFAULT_THEME } from '../../core/theme/theme-colors';
 
 type Field = { key: keyof BusinessSettings; label: string; hint?: string; type?: 'text' | 'email' | 'tel' | 'area' };
 
@@ -10,7 +12,7 @@ type Field = { key: keyof BusinessSettings; label: string; hint?: string; type?:
   selector: 'app-business-settings-page',
   template: `
     <div class="page">
-      <p class="muted" style="margin:0">Estos datos aparecen en la imagen que se envía al cliente. Las cotizaciones ya emitidas guardan su propia copia y no cambian.</p>
+      <p class="muted" style="margin:0">Estos datos aparecen en la app y en las imágenes que se envían. Las cotizaciones ya emitidas guardan su propia copia y no cambian.</p>
       @if (error()) { <div class="alert alert-error" role="alert">{{ error() }}</div> }
       @if (saved()) { <div class="alert alert-ok" role="status" aria-live="polite">{{ saved() }}</div> }
 
@@ -46,11 +48,23 @@ type Field = { key: keyof BusinessSettings; label: string; hint?: string; type?:
       }
 
       <section class="card stack">
-        <h2>Color de acento</h2>
-        <div class="row">
-          <input type="color" aria-label="Color de acento" [value]="data().accent_color" (change)="saveColor($any($event.target).value)" />
-          <span class="muted">Se usa en títulos y en el total de la imagen.</span>
+        <h2>Colores</h2>
+        <div class="colors">
+          <label class="color">
+            <input type="color" [value]="data().theme_primary" (input)="previewTheme('theme_primary', $any($event.target).value)" (change)="saveColor('theme_primary', $any($event.target).value)" />
+            <span><strong>Fondo de la app</strong><span class="muted">Menú, encabezados y botones principales.</span></span>
+          </label>
+          <label class="color">
+            <input type="color" [value]="data().theme_secondary" (input)="previewTheme('theme_secondary', $any($event.target).value)" (change)="saveColor('theme_secondary', $any($event.target).value)" />
+            <span><strong>Resaltado</strong><span class="muted">Opción activa del menú, enlaces y marcas.</span></span>
+          </label>
+          <label class="color">
+            <input type="color" [value]="data().accent_color" (change)="saveColor('accent_color', $any($event.target).value)" />
+            <span><strong>Imágenes</strong><span class="muted">Títulos y total de la cotización, confección y guía.</span></span>
+          </label>
         </div>
+        <button type="button" class="btn" style="justify-self:start" (click)="resetTheme()">Volver a los colores originales</button>
+        <span class="hint">El texto sobre el fondo cambia solo a blanco u oscuro para que siempre se lea.</span>
       </section>
     </div>
   `,
@@ -58,11 +72,15 @@ type Field = { key: keyof BusinessSettings; label: string; hint?: string; type?:
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
     .wide { grid-column: 1 / -1; }
     .logo { max-height: 64px; max-width: 220px; object-fit: contain; background: #f3f6fa; border-radius: 8px; padding: 6px; }
-    input[type=color] { width: 56px; height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 2px; }
+    input[type=color] { flex: none; width: 56px; height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 2px; }
+    .colors { display: grid; gap: 12px; }
+    .color { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .color > span { display: flex; flex-direction: column; }
   `,
 })
 export class BusinessSettingsPage implements OnInit {
   private readonly repo = inject(BusinessRepository);
+  private readonly theme = inject(ThemeService);
   readonly data = signal<BusinessSettings>({ ...EMPTY_BUSINESS });
   readonly logo = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -123,8 +141,20 @@ export class BusinessSettingsPage implements OnInit {
     await this.run({ [f.key]: value } as Partial<BusinessSettings>, f.label);
   }
 
-  async saveColor(hex: string): Promise<void> {
-    if (/^#[0-9a-fA-F]{6}$/.test(hex)) await this.run({ accent_color: hex }, 'Color');
+  previewTheme(key: 'theme_primary' | 'theme_secondary', hex: string): void {
+    const d = { ...this.data(), [key]: hex };
+    this.theme.preview({ primary: d.theme_primary, secondary: d.theme_secondary });
+  }
+
+  async saveColor(key: 'accent_color' | 'theme_primary' | 'theme_secondary', hex: string): Promise<void> {
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    await this.run({ [key]: hex.toUpperCase() } as Partial<BusinessSettings>, 'Color');
+    this.theme.set(this.data(), this.logo());
+  }
+
+  async resetTheme(): Promise<void> {
+    await this.run({ theme_primary: DEFAULT_THEME.primary, theme_secondary: DEFAULT_THEME.secondary }, 'Colores');
+    this.theme.set(this.data(), this.logo());
   }
 
   private async run(patch: Partial<BusinessSettings>, label: string): Promise<void> {
@@ -134,6 +164,7 @@ export class BusinessSettingsPage implements OnInit {
       await this.repo.update(patch);
       this.data.update((d) => ({ ...d, ...patch }));
       this.saved.set(`${label}: guardado`);
+      if ('business_name' in patch) this.theme.set(this.data(), this.logo());
     } catch (e) {
       this.error.set(toUserMessage(e));
     }
@@ -153,6 +184,7 @@ export class BusinessSettingsPage implements OnInit {
       const path = await this.repo.uploadLogo(file, ext);
       this.data.update((d) => ({ ...d, logo_path: path }));
       this.logo.set(await this.repo.logoDataUrl(path));
+      this.theme.set(this.data(), this.logo());
       this.saved.set('Logo guardado');
     } catch (e) {
       this.error.set(toUserMessage(e));

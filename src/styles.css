@@ -1,6 +1,10 @@
 /* Tokens de diseño (docs/DESIGN.md) */
 :root {
   --navy: #0f2a4a;
+  --navy-hover: #163a63;
+  --on-navy: #ffffff;
+  --on-navy-muted: #c9d6e8;
+  --on-blue: #ffffff;
   --blue: #2563eb;
   --blue-dark: #1d4ed8;
   --bg: #f3f6fa;
@@ -53,8 +57,8 @@ a:hover { color: var(--blue-dark); }
   cursor: pointer; text-decoration: none;
 }
 .btn:hover { background: var(--soft); color: var(--navy); }
-.btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
-.btn-primary:hover { background: #163a63; color: #fff; }
+.btn-primary { background: var(--navy); border-color: var(--navy); color: var(--on-navy); }
+.btn-primary:hover { background: var(--navy-hover); color: var(--on-navy); }
 .btn-danger { color: var(--danger); border-color: #f1b8b2; }
 .btn-danger:hover { background: var(--danger-bg); color: var(--danger); }
 .btn-ghost { border-color: transparent; background: transparent; }

@@ -76,3 +76,14 @@ test('garantía detallada: la edita el admin y queda en la copia al emitir', asy
   await rejects(as(ADMIN, (tx) => tx.query(`update public.business_settings set warranty_details_text = repeat('x', 3001)`)), /check|violates/i);
   await db.close();
 });
+
+test('colores de la app: por defecto los actuales, solo hex válido, los cambia el admin', async () => {
+  const { db, as } = await setupDb();
+  const r = (await as(MEDIDOR, (tx) => tx.query(`select theme_primary, theme_secondary from public.business_settings`))).rows[0];
+  assert.deepEqual(r, { theme_primary: '#0F2A4A', theme_secondary: '#2563EB' });
+  await as(ADMIN, (tx) => tx.query(`update public.business_settings set theme_primary = '#B91C1C'`));
+  await rejects(as(ADMIN, (tx) => tx.query(`update public.business_settings set theme_primary = 'rojo'`)), /check|violates/i);
+  const m = await as(MEDIDOR, (tx) => tx.query(`update public.business_settings set theme_primary = '#000000' returning 1`));
+  assert.equal(m.rows.length, 0);
+  await db.close();
+});

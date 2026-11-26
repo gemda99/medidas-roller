@@ -12,7 +12,8 @@
     "pretest": "npm run env",
     "test": "ng test",
     "test:db": "node --test supabase/tests/*.test.mjs",
-    "test:all": "npm run test -- --watch=false && npm run test:db"
+    "test:all": "npm run test -- --watch=false && npm run test:db",
+    "install-sql": "node scripts/build-install-sql.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.9",
