@@ -20,5 +20,8 @@ export function toUserMessage(error: unknown): string {
   if (e.code === '23503') return 'No se puede completar porque hay datos relacionados.';
   if (e.code === 'P0001' && e.message) return e.message;
   if (e.code === 'PGRST116') return 'No encontramos ese registro.';
+  // Función o columna que la base aún no tiene: falta ejecutar un «aplicar_….sql» en Supabase.
+  if (e.code === 'PGRST202' || e.code === 'PGRST204' || e.code === '42883' || e.code === '42703')
+    return 'La base de datos no está actualizada para esta función. El administrador debe ejecutar el último archivo «aplicar_….sql» en Supabase.';
   return 'Algo salió mal. Vuelve a intentar en unos segundos.';
 }

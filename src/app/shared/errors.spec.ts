@@ -23,4 +23,7 @@ describe('toUserMessage', () => {
       'Algo salió mal. Vuelve a intentar en unos segundos.',
     );
   });
+  it('avisa cuando falta actualizar la base (función o columna inexistente)', () => {
+    expect(toUserMessage({ code: 'PGRST202', message: 'Could not find the function public.admin_delete_rectification' })).toContain('aplicar_');
+  });
 });
